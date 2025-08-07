@@ -475,7 +475,7 @@ public class ConfidenceClientTests
 
         // Assert
         Assert.False(result.IsSuccess);
-        Assert.NotEmpty(result.ErrorMessage); // Any error message is fine
+        Assert.NotEmpty(result.ErrorMessage ?? string.Empty); // Any error message is fine
         Assert.NotNull(result.Exception);
         Assert.IsType<TaskCanceledException>(result.Exception);
         Assert.Equal("ERROR", result.Reason);
@@ -526,7 +526,7 @@ public class ConfidenceClientTests
 
         // Assert
         Assert.False(result.IsSuccess);
-        Assert.NotEmpty(result.ErrorMessage); // Any error message is fine
+        Assert.NotEmpty(result.ErrorMessage ?? string.Empty); // Any error message is fine
         Assert.NotNull(result.Exception);
         Assert.IsType<TaskCanceledException>(result.Exception);
         Assert.Equal("ERROR", result.Reason);

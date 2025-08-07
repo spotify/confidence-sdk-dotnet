@@ -8,6 +8,7 @@ using OpenFeature;
 using OpenFeature.Constant;
 using OpenFeature.Error;
 using OpenFeature.Model;
+using Spotify.Confidence.OpenFeature.Logging;
 using Spotify.Confidence.Sdk;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
@@ -32,7 +33,7 @@ public class ConfidenceProvider : FeatureProvider
     {
         _logger = logger ?? CreateDefaultLogger(options.LogLevel);
         _confidenceClient = new ConfidenceClient(options, CreateConfidenceClientLogger(options.LogLevel));
-        _logger.LogInformation("ConfidenceProvider initialized");
+        ConfidenceProviderLogger.ProviderInitialized(_logger, null);
     }
 
     internal ConfidenceProvider(IConfidenceClient confidenceClient, ILogger<ConfidenceProvider>? logger = null)
@@ -52,12 +53,12 @@ public class ConfidenceProvider : FeatureProvider
         EvaluationContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Resolving boolean flag '{FlagKey}' with default value: {DefaultValue}", flagKey, defaultValue);
+        ConfidenceProviderLogger.ResolvingBooleanFlag(_logger, flagKey, defaultValue, null);
         
         try
         {
             var result = await _confidenceClient.EvaluateBooleanFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
-            _logger.LogDebug("Successfully resolved boolean flag '{FlagKey}' with value: {Value}", flagKey, result.Value);
+            ConfidenceProviderLogger.ResolvedBooleanFlag(_logger, flagKey, result.Value, null);
             return new ResolutionDetails<bool>(
                 flagKey,
                 result.Value,
@@ -67,7 +68,7 @@ public class ConfidenceProvider : FeatureProvider
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error resolving boolean flag '{FlagKey}', returning default value: {DefaultValue}", flagKey, defaultValue);
+            ConfidenceProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, ex);
             return new ResolutionDetails<bool>(flagKey, defaultValue, ErrorType.General, reason: "Error resolving flag");
         }
     }
@@ -78,12 +79,12 @@ public class ConfidenceProvider : FeatureProvider
         EvaluationContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Resolving string flag '{FlagKey}' with default value: {DefaultValue}", flagKey, defaultValue);
+        ConfidenceProviderLogger.ResolvingStringFlag(_logger, flagKey, defaultValue, null);
         
         try
         {
             var result = await _confidenceClient.EvaluateStringFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
-            _logger.LogDebug("Successfully resolved string flag '{FlagKey}' with value: {Value}", flagKey, result.Value);
+            ConfidenceProviderLogger.ResolvedStringFlag(_logger, flagKey, result.Value, null);
             return new ResolutionDetails<string>(
                 flagKey,
                 result.Value,
@@ -93,7 +94,7 @@ public class ConfidenceProvider : FeatureProvider
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error resolving string flag '{FlagKey}', returning default value: {DefaultValue}", flagKey, defaultValue);
+            ConfidenceProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, ex);
             return new ResolutionDetails<string>(flagKey, defaultValue, ErrorType.General, reason: "Error resolving flag");
         }
     }
@@ -104,13 +105,13 @@ public class ConfidenceProvider : FeatureProvider
         EvaluationContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Resolving integer flag '{FlagKey}' with default value: {DefaultValue}", flagKey, defaultValue);
+        ConfidenceProviderLogger.ResolvingIntegerFlag(_logger, flagKey, defaultValue, null);
         
         try
         {
             var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
             var intValue = (int)result.Value;
-            _logger.LogDebug("Successfully resolved integer flag '{FlagKey}' with value: {Value}", flagKey, intValue);
+            ConfidenceProviderLogger.ResolvedIntegerFlag(_logger, flagKey, intValue, null);
             return new ResolutionDetails<int>(
                 flagKey,
                 intValue,
@@ -120,7 +121,7 @@ public class ConfidenceProvider : FeatureProvider
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error resolving integer flag '{FlagKey}', returning default value: {DefaultValue}", flagKey, defaultValue);
+            ConfidenceProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, ex);
             return new ResolutionDetails<int>(flagKey, defaultValue, ErrorType.General, reason: "Error resolving flag");
         }
     }
@@ -131,12 +132,12 @@ public class ConfidenceProvider : FeatureProvider
         EvaluationContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Resolving double flag '{FlagKey}' with default value: {DefaultValue}", flagKey, defaultValue);
+        ConfidenceProviderLogger.ResolvingDoubleFlag(_logger, flagKey, defaultValue, null);
         
         try
         {
             var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
-            _logger.LogDebug("Successfully resolved double flag '{FlagKey}' with value: {Value}", flagKey, result.Value);
+            ConfidenceProviderLogger.ResolvedDoubleFlag(_logger, flagKey, result.Value, null);
             return new ResolutionDetails<double>(
                 flagKey,
                 result.Value,
@@ -146,7 +147,7 @@ public class ConfidenceProvider : FeatureProvider
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error resolving double flag '{FlagKey}', returning default value: {DefaultValue}", flagKey, defaultValue);
+            ConfidenceProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, ex);
             return new ResolutionDetails<double>(flagKey, defaultValue, ErrorType.General, reason: "Error resolving flag");
         }
     }
@@ -157,14 +158,14 @@ public class ConfidenceProvider : FeatureProvider
         EvaluationContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Resolving structure flag '{FlagKey}' with default value: {DefaultValue}", flagKey, defaultValue);
+        ConfidenceProviderLogger.ResolvingStructureFlag(_logger, flagKey, defaultValue, null);
         
         try
         {
             var result = await _confidenceClient.EvaluateJsonFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
             var structure = ConvertToStructure(result.Value);
             var value = new Value(structure);
-            _logger.LogDebug("Successfully resolved structure flag '{FlagKey}'", flagKey);
+            ConfidenceProviderLogger.ResolvedStructureFlag(_logger, flagKey, null);
             return new ResolutionDetails<Value>(
                 flagKey,
                 value,
@@ -174,7 +175,7 @@ public class ConfidenceProvider : FeatureProvider
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Error resolving structure flag '{FlagKey}', returning default value", flagKey);
+            ConfidenceProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, ex);
             return new ResolutionDetails<Value>(flagKey, defaultValue, ErrorType.General, reason: "Error resolving flag");
         }
     }
@@ -186,13 +187,13 @@ public class ConfidenceProvider : FeatureProvider
 
     public override Task InitializeAsync(EvaluationContext context, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Initializing ConfidenceProvider with context: {Context}", context?.AsDictionary());
+        ConfidenceProviderLogger.InitializingProvider(_logger, context?.AsDictionary(), null);
         return Task.CompletedTask;
     }
 
     public override Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Shutting down ConfidenceProvider");
+        ConfidenceProviderLogger.ShuttingDownProvider(_logger, null);
         return Task.CompletedTask;
     }
 
