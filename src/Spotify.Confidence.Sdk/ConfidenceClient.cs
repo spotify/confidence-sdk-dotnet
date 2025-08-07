@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Polly;
 using Polly.Extensions.Http;
 using Spotify.Confidence.Sdk.Exceptions;
+using Spotify.Confidence.Sdk.Logging;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
 
@@ -75,12 +76,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         ConfigureHttpClient(_resolveClient);
         ConfigureHttpClient(_trackingClient);
         
-        _logger.LogInformation(
-            "ConfidenceClient initialized with resolve URL: {ResolveUrl}, event URL: {EventUrl}, timeout: {TimeoutSeconds}s, max retries: {MaxRetries}",
-            options.ResolveUrl,
-            options.EventUrl,
-            options.TimeoutSeconds,
-            options.MaxRetries);
+        ConfidenceClientLogger.ClientInitialized(_logger, options.ResolveUrl, options.EventUrl, options.TimeoutSeconds, options.MaxRetries, null);
     }
 
     /// <inheritdoc />
@@ -89,7 +85,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Evaluating boolean flag '{FlagKey}' with context: {Context}", flagKey, context?.Attributes);
+        ConfidenceClientLogger.EvaluatingBooleanFlag(_logger, flagKey, context?.Attributes, null);
         return await ResolveFlagAsync(flagKey, false, context, cancellationToken);
     }
 
@@ -99,7 +95,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Evaluating string flag '{FlagKey}' with context: {Context}", flagKey, context?.Attributes);
+        ConfidenceClientLogger.EvaluatingStringFlag(_logger, flagKey, context?.Attributes, null);
         return await ResolveFlagAsync(flagKey, string.Empty, context, cancellationToken);
     }
 
@@ -109,7 +105,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Evaluating numeric flag '{FlagKey}' with context: {Context}", flagKey, context?.Attributes);
+        ConfidenceClientLogger.EvaluatingNumericFlag(_logger, flagKey, context?.Attributes, null);
         return await ResolveFlagAsync(flagKey, 0.0, context, cancellationToken);
     }
 
@@ -119,7 +115,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Evaluating JSON flag '{FlagKey}' with context: {Context}", flagKey, context?.Attributes);
+        ConfidenceClientLogger.EvaluatingJsonFlag(_logger, flagKey, context?.Attributes, null);
         return await ResolveFlagAsync<object>(flagKey, new Dictionary<string, object>(), context, cancellationToken);
     }
 
@@ -129,7 +125,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         IDictionary<string, object>? data = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Tracking event '{EventName}' with data: {Data}", eventName, data);
+        ConfidenceClientLogger.TrackingEvent(_logger, eventName, data, null);
         
         var currentTime = DateTimeOffset.UtcNow;
         var iso8601Time = currentTime.ToString("O");
@@ -165,19 +161,19 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         try
         {
             await SendRequestAsync<object>(_trackingClient, TRACK_EVENTS_ENDPOINT, batch, cancellationToken);
-            _logger.LogDebug("Successfully tracked event '{EventName}'", eventName);
+            ConfidenceClientLogger.EventTracked(_logger, eventName, null);
         }
         catch (OperationCanceledException)
         {
-            _logger.LogWarning("Event tracking cancelled for '{EventName}'", eventName);
+            ConfidenceClientLogger.EventTrackingCancelled(_logger, eventName, null);
         }
         catch (ConfidenceException ex)
         {
-            _logger.LogWarning(ex, "Failed to track event '{EventName}' due to Confidence API error", eventName);
+            ConfidenceClientLogger.EventTrackingFailedConfidence(_logger, eventName, ex);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Failed to track event '{EventName}' due to network error", eventName);
+            ConfidenceClientLogger.EventTrackingFailedNetwork(_logger, eventName, ex);
         }
     }
 
@@ -188,7 +184,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogDebug("Resolving flag '{FlagKey}' of type {Type} with default value: {DefaultValue}", flagKey, typeof(T).Name, defaultValue);
+        ConfidenceClientLogger.ResolvingFlag(_logger, flagKey, typeof(T).Name, defaultValue, null);
         
         try
         {
@@ -198,7 +194,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
             var flag = GetResolvedFlagOrDefault(response, flagKey);
             if (flag == null)
             {
-                _logger.LogWarning("Flag '{FlagKey}' not found in response, returning default value: {DefaultValue}", flagKey, defaultValue);
+                ConfidenceClientLogger.FlagNotFound(_logger, flagKey, defaultValue, null);
                 return EvaluationResult.Failure(defaultValue, $"Flag '{flagKey}' not found in response");
             }
 
@@ -235,26 +231,26 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to parse flag value for '{FlagKey}', returning default value: {DefaultValue}", flagKey, defaultValue);
+                ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, ex);
                 return EvaluationResult.Failure(defaultValue, "Failed to parse flag value", ex);
             }
 
-            _logger.LogDebug("Successfully resolved flag '{FlagKey}' with value: {Value}, reason: {Reason}, variant: {Variant}", flagKey, typedValue, flag.Reason, flag.Variant);
+            ConfidenceClientLogger.FlagResolved(_logger, flagKey, typedValue, flag.Reason, flag.Variant, null);
             return EvaluationResult.Success(typedValue, flag.Reason, flag.Variant);
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogDebug(ex, "Flag resolution cancelled for '{FlagKey}', returning default value: {DefaultValue}", flagKey, defaultValue);
+            ConfidenceClientLogger.FlagResolutionCancelled(_logger, flagKey, defaultValue, ex);
             return EvaluationResult.Failure(defaultValue, "Request was cancelled", ex);
         }
         catch (ConfidenceException ex)
         {
-            _logger.LogError(ex, "Confidence API error while resolving flag '{FlagKey}', returning default value: {DefaultValue}", flagKey, defaultValue);
+            ConfidenceClientLogger.FlagResolutionFailedConfidence(_logger, flagKey, defaultValue, ex);
             return EvaluationResult.Failure(defaultValue, ex.Message, ex);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error while resolving flag '{FlagKey}', returning default value: {DefaultValue}", flagKey, defaultValue);
+            ConfidenceClientLogger.FlagResolutionFailedUnexpected(_logger, flagKey, defaultValue, ex);
             return EvaluationResult.Failure(defaultValue, "An unexpected error occurred", ex);
         }
     }
@@ -306,7 +302,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
     private async Task<T> SendRequestAsync<T>(HttpClient client, string path, object request, CancellationToken cancellationToken)
     {
         var baseUrl = client.BaseAddress?.ToString() ?? "unknown";
-        _logger.LogDebug("Sending {RequestType} request to {BaseUrl}{Path}", typeof(T).Name, baseUrl, path);
+        ConfidenceClientLogger.SendingRequest(_logger, typeof(T).Name, baseUrl, path, null);
         
         try
         {
@@ -317,12 +313,12 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
                 cancellationToken);
 
             response.EnsureSuccessStatusCode();
-            _logger.LogDebug("Received successful response with status {StatusCode} for {RequestType} request", response.StatusCode, typeof(T).Name);
+            ConfidenceClientLogger.ReceivedSuccessfulResponse(_logger, (int)response.StatusCode, typeof(T).Name, null);
 
             var result = await response.Content.ReadFromJsonAsync<T>(_jsonOptions, cancellationToken);
             if (result is null)
             {
-                _logger.LogError("Received null response from Confidence API for {RequestType} request", typeof(T).Name);
+                ConfidenceClientLogger.ReceivedNullResponse(_logger, typeof(T).Name, null);
                 throw new ConfidenceException("Received null response from Confidence API");
             }
 
@@ -330,17 +326,17 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Failed to communicate with Confidence API for {RequestType} request to {BaseUrl}{Path}", typeof(T).Name, baseUrl, path);
+            ConfidenceClientLogger.RequestFailedHttp(_logger, typeof(T).Name, baseUrl, path, ex);
             throw new ConfidenceException("Failed to communicate with Confidence API", ex);
         }
         catch (JsonException ex)
         {
-            _logger.LogError(ex, "Failed to deserialize response from Confidence API for {RequestType} request", typeof(T).Name);
+            ConfidenceClientLogger.RequestFailedDeserialization(_logger, typeof(T).Name, ex);
             throw new ConfidenceException("Failed to deserialize response from Confidence API", ex);
         }
         catch (OperationCanceledException ex)
         {
-            _logger.LogDebug(ex, "{RequestType} request to {BaseUrl}{Path} was cancelled", typeof(T).Name, baseUrl, path);
+            ConfidenceClientLogger.RequestCancelled(_logger, typeof(T).Name, baseUrl, path, ex);
             throw; // Re-throw cancellation exceptions without wrapping
         }
         catch (ConfidenceException)
@@ -349,7 +345,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error occurred during {RequestType} request to {BaseUrl}{Path}", typeof(T).Name, baseUrl, path);
+            ConfidenceClientLogger.RequestFailedUnexpected(_logger, typeof(T).Name, baseUrl, path, ex);
             throw new ConfidenceException("An unexpected error occurred", ex);
         }
     }
@@ -380,7 +376,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
 
         if (disposing)
         {
-            _logger.LogInformation("Disposing ConfidenceClient resources");
+            ConfidenceClientLogger.DisposingClient(_logger, null);
             _resolveClient.Dispose();
             _trackingClient.Dispose();
         }
