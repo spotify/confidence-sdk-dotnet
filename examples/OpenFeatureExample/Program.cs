@@ -56,6 +56,10 @@ try
     Console.WriteLine("\n🏗️  Demo 3: Structured Flag Evaluation");
     await DemoStructuredFlag(client, logger);
 
+    // Demo 4: NEW - Dot-notation feature
+    Console.WriteLine("\n🎯 Demo 4: NEW - Dot-Notation Feature");
+    await DemoDotNotation(client, logger);
+
     Console.WriteLine("\n✅ All demos completed successfully!");
     return 0;
 }
@@ -138,6 +142,80 @@ static async Task DemoStringFlag(IFeatureClient client, ILogger logger)
     const string colorReset = "\u001b[0m";
 
     Console.WriteLine($"  {colorCode}🎯 Styled Message: {message}{colorReset}");
+}
+
+static async Task DemoDotNotation(IFeatureClient client, ILogger logger)
+{
+    Console.WriteLine("🎯 Dot-Notation with OpenFeature");
+    Console.WriteLine("=================================");
+    Console.WriteLine("The Confidence provider now supports dot-notation for accessing nested flag properties!");
+    Console.WriteLine();
+
+    var context = EvaluationContext.Builder()
+        .SetTargetingKey("enabled_value_visitor")
+        .Set("visitor_id", "enabled_value_visitor")
+        .Build();
+
+    try
+    {
+        // Traditional approach: Get entire structure then navigate manually
+        Console.WriteLine("📋 Traditional approach (get entire structure):");
+        var fullStructure = await client.GetObjectValueAsync("hawkflag", new Value(), context);
+        var structure = fullStructure.AsStructure;
+        
+        var traditionalColor = "defaultColor";
+        var traditionalMessage = "defaultMessage";
+        
+        if (structure != null && structure.ContainsKey("color"))
+        {
+            traditionalColor = structure.GetValue("color")?.AsString ?? "defaultColor";
+        }
+        if (structure != null && structure.ContainsKey("message"))
+        {
+            traditionalMessage = structure.GetValue("message")?.AsString ?? "defaultMessage";
+        }
+        
+        Console.WriteLine($"   Color: {traditionalColor}");
+        Console.WriteLine($"   Message: {traditionalMessage}");
+        Console.WriteLine();
+
+        // NEW: Dot-notation approach - direct access with type safety
+        Console.WriteLine("✨ NEW: Dot-notation approach (direct access):");
+        
+        // Extract individual properties directly using dot-notation
+        var color = await client.GetStringValueAsync("hawkflag.color", "defaultColor", context);
+        var message = await client.GetStringValueAsync("hawkflag.message", "defaultMessage", context);
+        
+        Console.WriteLine($"   hawkflag.color = \"{color}\"");
+        Console.WriteLine($"   hawkflag.message = \"{message}\"");
+        Console.WriteLine();
+
+        // Show more complex examples
+        Console.WriteLine("🏗️  More complex dot-notation examples:");
+        Console.WriteLine("   (These would work with appropriately structured flags)");
+        Console.WriteLine();
+        Console.WriteLine("   // Boolean from deep nesting");
+        Console.WriteLine("   var darkMode = await client.GetBooleanValueAsync(\"user-settings.preferences.darkMode\", false, context);");
+        Console.WriteLine();
+        Console.WriteLine("   // Number from nested configuration");
+        Console.WriteLine("   var timeout = await client.GetDoubleValueAsync(\"app-config.performance.timeout\", 5000.0, context);");
+        Console.WriteLine();
+        Console.WriteLine("   // String from UI configuration");
+        Console.WriteLine("   var primaryColor = await client.GetStringValueAsync(\"ui-theme.colors.primary\", \"#000000\", context);");
+        Console.WriteLine();
+
+        Console.WriteLine("💡 Benefits of dot-notation with OpenFeature:");
+        Console.WriteLine("   • Uses standard OpenFeature API methods");
+        Console.WriteLine("   • Type-safe extraction (GetBooleanValueAsync, GetStringValueAsync, etc.)");
+        Console.WriteLine("   • Built-in default values");
+        Console.WriteLine("   • Cleaner, more readable code");
+        Console.WriteLine("   • Works with any OpenFeature-compatible tooling");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error demonstrating dot-notation");
+        Console.WriteLine($"❌ Error: {ex.Message}");
+    }
 }
 
 static async Task DemoStructuredFlag(IFeatureClient client, ILogger logger)

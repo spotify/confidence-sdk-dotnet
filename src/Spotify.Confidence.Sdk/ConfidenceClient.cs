@@ -13,6 +13,7 @@ using Spotify.Confidence.Sdk.Exceptions;
 using Spotify.Confidence.Sdk.Logging;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
+using Spotify.Confidence.Sdk.Utils;
 
 namespace Spotify.Confidence.Sdk;
 
@@ -87,7 +88,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.EvaluatingBooleanFlag(_logger, flagKey, context?.Attributes, null);
-        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken);
+        return EvaluateTypedFlagAsync(flagKey, defaultValue, context, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -98,7 +99,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.EvaluatingStringFlag(_logger, flagKey, context?.Attributes, null);
-        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken);
+        return EvaluateTypedFlagAsync(flagKey, defaultValue, context, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -109,7 +110,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.EvaluatingNumericFlag(_logger, flagKey, context?.Attributes, null);
-        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken);
+        return EvaluateTypedFlagAsync(flagKey, defaultValue, context, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -120,7 +121,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.EvaluatingJsonFlag(_logger, flagKey, context?.Attributes, null);
-        return ResolveFlagAsync<object>(flagKey, defaultValue, context, cancellationToken);
+        return EvaluateTypedFlagAsync(flagKey, defaultValue, context, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -441,5 +442,73 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         }
 
         _disposed = true;
+    }
+
+    /// <inheritdoc />
+    public async Task<ResolvedFlag?> ResolveFlagStructureAsync(
+        string flagKey,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        ConfidenceClientLogger.ResolvingFlag(_logger, flagKey, "ResolvedFlag", null, null);
+        
+        // Parse dot-notation to get base flag name
+        var (baseFlagName, _) = DotNotationHelper.ParseDotNotation(flagKey);
+        
+        var request = new EvaluationRequest(baseFlagName, context, _clientSecret);
+        var response = await SendRequestAsync<ResolveResponse>(_resolveClient, RESOLVE_FLAGS_ENDPOINT, request, cancellationToken);
+
+        var flag = GetResolvedFlagOrDefault(response, baseFlagName);
+        return flag;
+    }
+
+    /// <summary>
+    /// Common helper method for evaluating typed flags with dot-notation support.
+    /// </summary>
+    /// <typeparam name="T">The type of the flag value.</typeparam>
+    /// <param name="flagKey">The key of the flag to evaluate (may include dot-notation).</param>
+    /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
+    /// <param name="context">The context to use for evaluation.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The evaluation result.</returns>
+    private async Task<EvaluationResult<T>> EvaluateTypedFlagAsync<T>(
+        string flagKey,
+        T defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Parse dot-notation to get base flag name for error messages
+            var (baseFlagName, _) = DotNotationHelper.ParseDotNotation(flagKey);
+            
+            var flag = await ResolveFlagStructureAsync(flagKey, context, cancellationToken);
+            if (flag == null)
+            {
+                ConfidenceClientLogger.FlagNotFound(_logger, flagKey, defaultValue, null);
+                return EvaluationResult.Failure(defaultValue, $"Flag '{baseFlagName}' not found in response");
+            }
+
+            var (value, errorMessage) = DotNotationHelper.ExtractTypedValue(flag, flagKey, defaultValue, _jsonOptions);
+            
+            if (errorMessage != null)
+            {
+                ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, null);
+                return EvaluationResult.Failure(defaultValue, errorMessage);
+            }
+
+            ConfidenceClientLogger.FlagResolved(_logger, flagKey, value, flag.Reason, flag.Variant, null);
+            return EvaluationResult.Success(value, flag.Reason, flag.Variant);
+        }
+        catch (OperationCanceledException ex)
+        {
+            ConfidenceClientLogger.FlagResolutionCancelled(_logger, flagKey, defaultValue, ex);
+            return EvaluationResult.Failure(defaultValue, "Request was cancelled", ex);
+        }
+        catch (ConfidenceException ex)
+        {
+            ConfidenceClientLogger.FlagResolutionFailedConfidence(_logger, flagKey, defaultValue, ex);
+            return EvaluationResult.Failure(defaultValue, "Failed to communicate with Confidence API", ex);
+        }
     }
 }
