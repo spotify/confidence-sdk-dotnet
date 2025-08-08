@@ -11,11 +11,13 @@ public interface IConfidenceClient
     /// Evaluates a boolean flag.
     /// </summary>
     /// <param name="flagKey">The key of the flag to evaluate.</param>
+    /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
     /// <param name="context">The context to use for evaluation.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The evaluation result.</returns>
     Task<EvaluationResult<bool>> EvaluateBooleanFlagAsync(
         string flagKey,
+        bool defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default);
 
@@ -23,11 +25,13 @@ public interface IConfidenceClient
     /// Evaluates a string flag.
     /// </summary>
     /// <param name="flagKey">The key of the flag to evaluate.</param>
+    /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
     /// <param name="context">The context to use for evaluation.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The evaluation result.</returns>
     Task<EvaluationResult<string>> EvaluateStringFlagAsync(
         string flagKey,
+        string defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default);
 
@@ -40,6 +44,7 @@ public interface IConfidenceClient
     /// <returns>The evaluation result.</returns>
     Task<EvaluationResult<double>> EvaluateNumericFlagAsync(
         string flagKey,
+        double defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default);
 
@@ -47,11 +52,13 @@ public interface IConfidenceClient
     /// Evaluates a JSON flag.
     /// </summary>
     /// <param name="flagKey">The key of the flag to evaluate.</param>
+    /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
     /// <param name="context">The context to use for evaluation.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The evaluation result.</returns>
     Task<EvaluationResult<object>> EvaluateJsonFlagAsync(
         string flagKey,
+        object defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default);
 
