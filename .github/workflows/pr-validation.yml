@@ -7,15 +7,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dotnet-version: ['8.0.x', '9.0.x']
-        framework: ['net8.0', 'net9.0']
-        exclude:
-          - dotnet-version: '8.0.x'
-            framework: 'net9.0'
-          - dotnet-version: '9.0.x'
-            framework: 'net8.0'
     
     steps:
     - uses: actions/checkout@v4
@@ -23,7 +14,9 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: ${{ matrix.dotnet-version }}
+        dotnet-version: | 
+          8.0.x
+          9.0.x
     
     - name: Restore dependencies
       run: dotnet restore
@@ -32,4 +25,4 @@ jobs:
       run: dotnet build --verbosity normal --no-restore /p:TreatWarningsAsErrors=true
     
     - name: Run tests
-      run: dotnet test --no-build --verbosity normal --framework ${{ matrix.framework }}
+      run: dotnet test --no-build --verbosity normal --framework net9.0
