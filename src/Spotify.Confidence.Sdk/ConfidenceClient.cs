@@ -80,47 +80,47 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
     }
 
     /// <inheritdoc />
-    public async Task<EvaluationResult<bool>> EvaluateBooleanFlagAsync(
+    public Task<EvaluationResult<bool>> EvaluateBooleanFlagAsync(
         string flagKey,
         bool defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.EvaluatingBooleanFlag(_logger, flagKey, context?.Attributes, null);
-        return await ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken);
+        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<EvaluationResult<string>> EvaluateStringFlagAsync(
+    public Task<EvaluationResult<string>> EvaluateStringFlagAsync(
         string flagKey,
         string defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.EvaluatingStringFlag(_logger, flagKey, context?.Attributes, null);
-        return await ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken);
+        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<EvaluationResult<double>> EvaluateNumericFlagAsync(
+    public Task<EvaluationResult<double>> EvaluateNumericFlagAsync(
         string flagKey,
         double defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.EvaluatingNumericFlag(_logger, flagKey, context?.Attributes, null);
-        return await ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken);
+        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async Task<EvaluationResult<object>> EvaluateJsonFlagAsync(
+    public Task<EvaluationResult<object>> EvaluateJsonFlagAsync(
         string flagKey,
         object defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.EvaluatingJsonFlag(_logger, flagKey, context?.Attributes, null);
-        return await ResolveFlagAsync<object>(flagKey, defaultValue, context, cancellationToken);
+        return ResolveFlagAsync<object>(flagKey, defaultValue, context, cancellationToken);
     }
 
     /// <inheritdoc />
