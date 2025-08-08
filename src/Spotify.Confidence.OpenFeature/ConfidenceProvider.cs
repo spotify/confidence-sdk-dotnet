@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -266,8 +268,35 @@ public class ConfidenceProvider : FeatureProvider
             DateTime dt => new Value(dt),
             IDictionary<string, object> dict => new Value(ConvertToStructure(dict)),
             IList<object> list => new Value(list.Select(ConvertToValue).ToList()),
+            JsonElement jsonElement => ConvertJsonElementToValue(jsonElement),
             _ => throw new ArgumentException($"Cannot convert type {value.GetType()} to Value")
         };
+    }
+
+    private static Value ConvertJsonElementToValue(JsonElement jsonElement)
+    {
+        return jsonElement.ValueKind switch
+        {
+            JsonValueKind.True => new Value(true),
+            JsonValueKind.False => new Value(false),
+            JsonValueKind.Number => jsonElement.TryGetInt32(out var intValue) ? new Value(intValue) : new Value(jsonElement.GetDouble()),
+            JsonValueKind.String => new Value(jsonElement.GetString() ?? string.Empty),
+            JsonValueKind.Object => new Value(ConvertJsonObjectToStructure(jsonElement)),
+            JsonValueKind.Array => new Value(jsonElement.EnumerateArray().Select(ConvertJsonElementToValue).ToList()),
+            JsonValueKind.Null => new Value(),
+            JsonValueKind.Undefined => new Value(),
+            _ => throw new ArgumentException($"Cannot convert JsonElement with ValueKind {jsonElement.ValueKind} to Value")
+        };
+    }
+
+    private static Structure ConvertJsonObjectToStructure(JsonElement jsonObject)
+    {
+        var builder = Structure.Builder();
+        foreach (var property in jsonObject.EnumerateObject())
+        {
+            builder.Set(property.Name, ConvertJsonElementToValue(property.Value));
+        }
+        return builder.Build();
     }
 
     private static ILogger<ConfidenceProvider> CreateDefaultLogger(LogLevel logLevel)
