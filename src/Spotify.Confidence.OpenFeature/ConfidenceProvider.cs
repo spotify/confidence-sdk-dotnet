@@ -57,7 +57,7 @@ public class ConfidenceProvider : FeatureProvider
         
         try
         {
-            var result = await _confidenceClient.EvaluateBooleanFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
+            var result = await _confidenceClient.EvaluateBooleanFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
             ConfidenceProviderLogger.ResolvedBooleanFlag(_logger, flagKey, result.Value, null);
             return new ResolutionDetails<bool>(
                 flagKey,
@@ -83,7 +83,7 @@ public class ConfidenceProvider : FeatureProvider
         
         try
         {
-            var result = await _confidenceClient.EvaluateStringFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
+            var result = await _confidenceClient.EvaluateStringFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
             ConfidenceProviderLogger.ResolvedStringFlag(_logger, flagKey, result.Value, null);
             return new ResolutionDetails<string>(
                 flagKey,
@@ -109,7 +109,7 @@ public class ConfidenceProvider : FeatureProvider
         
         try
         {
-            var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
+            var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
             var intValue = (int)result.Value;
             ConfidenceProviderLogger.ResolvedIntegerFlag(_logger, flagKey, intValue, null);
             return new ResolutionDetails<int>(
@@ -136,7 +136,7 @@ public class ConfidenceProvider : FeatureProvider
         
         try
         {
-            var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
+            var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
             ConfidenceProviderLogger.ResolvedDoubleFlag(_logger, flagKey, result.Value, null);
             return new ResolutionDetails<double>(
                 flagKey,
@@ -162,7 +162,7 @@ public class ConfidenceProvider : FeatureProvider
         
         try
         {
-            var result = await _confidenceClient.EvaluateJsonFlagAsync(flagKey, CreateConfidenceContext(context), cancellationToken);
+            var result = await _confidenceClient.EvaluateJsonFlagAsync(flagKey, defaultValue.AsObject ?? new Dictionary<string, object>(), CreateConfidenceContext(context), cancellationToken);
             var structure = ConvertToStructure(result.Value);
             var value = new Value(structure);
             ConfidenceProviderLogger.ResolvedStructureFlag(_logger, flagKey, null);
