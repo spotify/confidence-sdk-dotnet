@@ -56,10 +56,6 @@ try
     Console.WriteLine("\n🏗️  Demo 3: Structured Flag Evaluation");
     await DemoStructuredFlag(client, logger);
 
-    // Demo 4: Provider information
-    Console.WriteLine("\n📊 Demo 4: Provider Information");
-    await DemoProviderInfo(client, logger);
-
     Console.WriteLine("\n✅ All demos completed successfully!");
     return 0;
 }
@@ -170,33 +166,3 @@ static async Task DemoStructuredFlag(IFeatureClient client, ILogger logger)
     Console.WriteLine($"     Reason: {structureDetails.Reason}");
 }
 
-static async Task DemoProviderInfo(IFeatureClient client, ILogger logger)
-{
-    // Get provider metadata
-    var api = Api.Instance;
-    var providerMetadata = api.GetProviderMetadata();
-
-    Console.WriteLine($"  🔧 Provider Name: {providerMetadata?.Name ?? "Unknown"}");
-
-    // Show multiple evaluation with different contexts
-    var contexts = new[]
-    {
-        ("alice", EvaluationContext.Builder()
-            .SetTargetingKey("enabled_value_visitor")
-            .Set("visitor_id", "enabled_value_visitor")
-            .Set("user_type", "premium")
-            .Build()),
-        ("bob", EvaluationContext.Builder()
-            .SetTargetingKey("disabled_value_visitor")
-            .Set("visitor_id", "disabled_value_visitor")
-            .Set("user_type", "free")
-            .Build())
-    };
-
-    Console.WriteLine("  📈 Batch evaluation results:");
-    foreach (var (userName, context) in contexts)
-    {
-        var details = await client.GetBooleanDetailsAsync("hawkflag.enabled", false, context);
-        Console.WriteLine($"     {userName}: {details.Value} (reason: {details.Reason})");
-    }
-}
