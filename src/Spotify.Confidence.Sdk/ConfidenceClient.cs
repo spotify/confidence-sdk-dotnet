@@ -361,6 +361,61 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
     }
 
     /// <inheritdoc />
+    public Task<bool> GetBoolValueAsync(
+        string flagKey,
+        bool defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken)
+            .ContinueWith(task => task.Result.Value, cancellationToken, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+    }
+
+    /// <inheritdoc />
+    public Task<string> GetStringValueAsync(
+        string flagKey,
+        string defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken)
+            .ContinueWith(task => task.Result.Value, cancellationToken, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+    }
+
+    /// <inheritdoc />
+    public Task<double> GetNumericValueAsync(
+        string flagKey,
+        double defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken)
+            .ContinueWith(task => task.Result.Value, cancellationToken, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+    }
+
+    /// <inheritdoc />
+    public Task<int> GetIntValueAsync(
+        string flagKey,
+        int defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        return ResolveFlagAsync(flagKey, defaultValue, context, cancellationToken)
+            .ContinueWith(task => task.Result.Value, cancellationToken, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+    }
+
+    /// <inheritdoc />
+    public Task<object> GetJsonValueAsync(
+        string flagKey,
+        object defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default)
+    {
+        return EvaluateJsonFlagAsync(flagKey, defaultValue, context, cancellationToken)
+            .ContinueWith(task => task.Result.Value, cancellationToken, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
         Dispose(true);
