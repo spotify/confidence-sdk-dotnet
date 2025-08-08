@@ -90,7 +90,7 @@ public class ConfidenceClientTests
         });
 
         // Act
-        var result = await _client.EvaluateBooleanFlagAsync(flagKey, context);
+        var result = await _client.EvaluateBooleanFlagAsync(flagKey, false, context);
 
         // Assert
         Assert.True(result.IsSuccess);
@@ -124,7 +124,7 @@ public class ConfidenceClientTests
         });
 
         // Act
-        var result = await _client.EvaluateStringFlagAsync(flagKey, context);
+        var result = await _client.EvaluateStringFlagAsync(flagKey, "default", context);
 
         // Assert
         Assert.Equal(expectedResult.Value, result.Value);
@@ -157,7 +157,7 @@ public class ConfidenceClientTests
         });
 
         // Act
-        var result = await _client.EvaluateNumericFlagAsync(flagKey, context);
+        var result = await _client.EvaluateNumericFlagAsync(flagKey, 0.0, context);
 
         // Assert
         Assert.Equal(expectedResult.Value, result.Value);
@@ -193,7 +193,7 @@ public class ConfidenceClientTests
         });
 
         // Act
-        var result = await _client.EvaluateJsonFlagAsync(flagKey, context);
+        var result = await _client.EvaluateJsonFlagAsync(flagKey, new Dictionary<string, object>(), context);
 
         // Assert
         var expectedJson = JsonSerializer.Serialize(expectedResult.Value);
@@ -218,7 +218,7 @@ public class ConfidenceClientTests
         });
 
         // Act
-        var result = await _client.EvaluateBooleanFlagAsync(flagKey, context);
+        var result = await _client.EvaluateBooleanFlagAsync(flagKey, false, context);
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -237,7 +237,7 @@ public class ConfidenceClientTests
         SetupMockResponse<ResolveResponse>(HttpStatusCode.InternalServerError, null);
 
         // Act
-        var result = await _client.EvaluateBooleanFlagAsync(flagKey, context);
+        var result = await _client.EvaluateBooleanFlagAsync(flagKey, false, context);
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -366,7 +366,7 @@ public class ConfidenceClientTests
             .ReturnsAsync(response);
 
         // Act
-        await _client.EvaluateBooleanFlagAsync(flagKey, context);
+        await _client.EvaluateBooleanFlagAsync(flagKey, false, context);
 
         // Assert
         Assert.NotEmpty(capturedRequest);
@@ -471,7 +471,7 @@ public class ConfidenceClientTests
         cts.Cancel(); // Pre-cancelled token
 
         // Act
-        var result = await _client.EvaluateBooleanFlagAsync(flagKey, context, cts.Token);
+        var result = await _client.EvaluateBooleanFlagAsync(flagKey, false, context, cts.Token);
 
         // Assert
         Assert.False(result.IsSuccess);
@@ -522,7 +522,7 @@ public class ConfidenceClientTests
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50)); // Short timeout
 
         // Act
-        var result = await _client.EvaluateBooleanFlagAsync(flagKey, context, cts.Token);
+        var result = await _client.EvaluateBooleanFlagAsync(flagKey, false, context, cts.Token);
 
         // Assert
         Assert.False(result.IsSuccess);

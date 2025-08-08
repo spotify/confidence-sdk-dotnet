@@ -83,7 +83,7 @@ catch (Exception ex)
 static async Task EvaluateAndPrintFlag(ConfidenceClient client, ConfidenceContext context, ILogger logger)
 {
     // Get the flag value with the context
-    var flag = await client.EvaluateJsonFlagAsync("hawkflag", context);
+    var flag = await client.EvaluateJsonFlagAsync("hawkflag", new Dictionary<string, object>(), context);
     logger.LogInformation("Flag value: {Value}", flag.Value);
 
     var structure = flag.Value as Dictionary<string, object>;

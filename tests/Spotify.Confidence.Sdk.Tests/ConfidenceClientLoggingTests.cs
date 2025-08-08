@@ -147,7 +147,7 @@ public class ConfidenceClientLoggingTests
         resolveField?.SetValue(client, httpClient);
 
         // Act - Perform an operation that generates debug logs
-        await client.EvaluateBooleanFlagAsync("test-flag");
+        await client.EvaluateBooleanFlagAsync("test-flag", false);
 
         // Assert
         var logs = testLogger.Logs;

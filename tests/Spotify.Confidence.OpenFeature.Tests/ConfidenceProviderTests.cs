@@ -79,7 +79,7 @@ public class ConfidenceProviderTests
         const bool resolvedValue = false;
         const string variant = "test-variant";
 
-        _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(flagKey, It.IsAny<ConfidenceContext>(), default))
+        _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(flagKey, It.IsAny<bool>(), It.IsAny<ConfidenceContext>(), default))
             .ReturnsAsync(new EvaluationResult<bool>
             {
                 Value = resolvedValue,
@@ -105,7 +105,7 @@ public class ConfidenceProviderTests
         const string flagKey = "test-flag";
         const bool defaultValue = true;
 
-        _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(flagKey, It.IsAny<ConfidenceContext>(), default))
+        _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(flagKey, It.IsAny<bool>(), It.IsAny<ConfidenceContext>(), default))
             .ThrowsAsync(new Exception("Test error"));
 
         // Act
@@ -127,7 +127,7 @@ public class ConfidenceProviderTests
         const string resolvedValue = "resolved";
         const string variant = "test-variant";
 
-        _mockClient.Setup(c => c.EvaluateStringFlagAsync(flagKey, It.IsAny<ConfidenceContext>(), default))
+        _mockClient.Setup(c => c.EvaluateStringFlagAsync(flagKey, It.IsAny<string>(), It.IsAny<ConfidenceContext>(), default))
             .ReturnsAsync(new EvaluationResult<string>
             {
                 Value = resolvedValue,
@@ -155,7 +155,7 @@ public class ConfidenceProviderTests
         const double resolvedValue = 84;
         const string variant = "test-variant";
 
-        _mockClient.Setup(c => c.EvaluateNumericFlagAsync(flagKey, It.IsAny<ConfidenceContext>(), default))
+        _mockClient.Setup(c => c.EvaluateNumericFlagAsync(flagKey, It.IsAny<double>(), It.IsAny<ConfidenceContext>(), default))
             .ReturnsAsync(new EvaluationResult<double>
             {
                 Value = resolvedValue,
@@ -183,7 +183,7 @@ public class ConfidenceProviderTests
         const double resolvedValue = 6.28;
         const string variant = "test-variant";
 
-        _mockClient.Setup(c => c.EvaluateNumericFlagAsync(flagKey, It.IsAny<ConfidenceContext>(), default))
+        _mockClient.Setup(c => c.EvaluateNumericFlagAsync(flagKey, It.IsAny<double>(), It.IsAny<ConfidenceContext>(), default))
             .ReturnsAsync(new EvaluationResult<double>
             {
                 Value = resolvedValue,
@@ -212,7 +212,7 @@ public class ConfidenceProviderTests
         var resolvedObject = new Dictionary<string, object> { { "test", "resolved" } };
         const string variant = "test-variant";
 
-        _mockClient.Setup(c => c.EvaluateJsonFlagAsync(flagKey, It.IsAny<ConfidenceContext>(), default))
+        _mockClient.Setup(c => c.EvaluateJsonFlagAsync(flagKey, It.IsAny<object>(), It.IsAny<ConfidenceContext>(), default))
             .ReturnsAsync(new EvaluationResult<object>
             {
                 Value = resolvedObject,
@@ -256,8 +256,8 @@ public class ConfidenceProviderTests
             .Set("targetingKey", targetingKey)
             .Build();
 
-        _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(flagKey, It.IsAny<ConfidenceContext>(), default))
-            .Callback<string, ConfidenceContext?, CancellationToken>((_, ctx, _) => capturedContext = ctx)
+        _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(flagKey, It.IsAny<bool>(), It.IsAny<ConfidenceContext>(), default))
+            .Callback<string, bool, ConfidenceContext?, CancellationToken>((_, _, ctx, _) => capturedContext = ctx)
             .ReturnsAsync(new EvaluationResult<bool>
             {
                 Value = defaultValue,
