@@ -182,7 +182,7 @@ public class DotNotationTests
         Assert.NotNull(structure);
         
         // Verify the structure contains expected values
-        var structureDict = structure?.AsDictionary() ?? new Dictionary<string, object>();
+        var structureDict = structure?.AsDictionary() ?? new Dictionary<string, Value>();
         Assert.True((bool)structureDict["enabled"].AsObject!);
         Assert.Equal(25, Convert.ToInt32(structureDict["rolloutPercentage"].AsObject!));
         Assert.Equal("New experimental feature", (string)structureDict["description"].AsObject!);
