@@ -159,5 +159,4 @@ public interface IConfidenceClient
         object defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default);
-
 }
