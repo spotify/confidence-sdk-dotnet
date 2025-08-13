@@ -88,4 +88,75 @@ public interface IConfidenceClient
         T defaultValue,
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the boolean value of a flag for the specified key and context.
+    /// </summary>
+    /// <param name="flagKey">The key of the flag to evaluate. Can use dot notation for nested properties (e.g., "flag-name.property-name").</param>
+    /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
+    /// <param name="context">The context to use for evaluation.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The flag value or the default value if resolution fails.</returns>
+    Task<bool> GetBoolValueAsync(
+        string flagKey,
+        bool defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the string value of a flag for the specified key and context.
+    /// </summary>
+    /// <param name="flagKey">The key of the flag to evaluate. Can use dot notation for nested properties (e.g., "flag-name.property-name").</param>
+    /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
+    /// <param name="context">The context to use for evaluation.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The flag value or the default value if resolution fails.</returns>
+    Task<string> GetStringValueAsync(
+        string flagKey,
+        string defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the numeric value of a flag for the specified key and context.
+    /// </summary>
+    /// <param name="flagKey">The key of the flag to evaluate. Can use dot notation for nested properties (e.g., "flag-name.property-name").</param>
+    /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
+    /// <param name="context">The context to use for evaluation.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The flag value or the default value if resolution fails.</returns>
+    Task<double> GetNumericValueAsync(
+        string flagKey,
+        double defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the integer value of a flag for the specified key and context.
+    /// </summary>
+    /// <param name="flagKey">The key of the flag to evaluate. Can use dot notation for nested properties (e.g., "flag-name.property-name").</param>
+    /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
+    /// <param name="context">The context to use for evaluation.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The flag value or the default value if resolution fails.</returns>
+    Task<int> GetIntValueAsync(
+        string flagKey,
+        int defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the JSON/object value of a flag for the specified key and context.
+    /// This method is useful for complex flag structures like dictionaries, arrays, or custom objects.
+    /// </summary>
+    /// <param name="flagKey">The key of the flag to evaluate.</param>
+    /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
+    /// <param name="context">The context to use for evaluation.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The flag value or the default value if resolution fails.</returns>
+    Task<object> GetJsonValueAsync(
+        string flagKey,
+        object defaultValue,
+        ConfidenceContext? context = null,
+        CancellationToken cancellationToken = default);
 }
