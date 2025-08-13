@@ -44,7 +44,8 @@ try
             { "visitor_id", "enabled_value_visitor" }
         });
 
-        Console.WriteLine("\nTrying with enabled visitor...");
+        Console.WriteLine("\n=== Standard Flag Evaluation ===");
+        Console.WriteLine("Trying with enabled visitor...");
         await EvaluateAndPrintFlag(confidenceClient, enabledContext, logger);
 
         // Then try with disabled visitor
@@ -55,6 +56,10 @@ try
 
         Console.WriteLine("\nTrying with disabled visitor...");
         await EvaluateAndPrintFlag(confidenceClient, disabledContext, logger);
+
+        // Demo dot-notation feature
+        Console.WriteLine("\n=== NEW: Dot-Notation Feature Demo ===");
+        await DemoDotNotationFeature(confidenceClient, enabledContext, logger);
 
         // Track an event similar to the Go demo
         Console.WriteLine("\nTracking an event...");
@@ -106,4 +111,51 @@ static async Task EvaluateAndPrintFlag(ConfidenceClient client, ConfidenceContex
     };
 
     Console.WriteLine($"{colorCode}Message --> {messageValue}{colorDefault}");
+}
+
+static async Task DemoDotNotationFeature(ConfidenceClient client, ConfidenceContext context, ILogger logger)
+{
+    Console.WriteLine("🎯 Demonstrating Dot-Notation Feature");
+    Console.WriteLine("=====================================");
+    Console.WriteLine("With dot-notation, you can directly access nested properties in complex flags!");
+    Console.WriteLine();
+
+    try
+    {
+        // First, get the entire flag structure for comparison
+        var fullFlag = await client.EvaluateJsonFlagAsync("hawkflag", new Dictionary<string, object>(), context);
+        Console.WriteLine("📋 Full flag structure:");
+        Console.WriteLine($"   {System.Text.Json.JsonSerializer.Serialize(fullFlag.Value, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })}");
+        Console.WriteLine();
+
+        // Now demonstrate dot-notation: extract individual properties directly
+        Console.WriteLine("🔍 Using dot-notation to extract specific properties:");
+        
+        // Extract color directly using dot-notation
+        var colorResult = await client.EvaluateStringFlagAsync("hawkflag.color", "defaultColor", context);
+        Console.WriteLine($"   hawkflag.color = \"{colorResult.Value}\" (reason: {colorResult.Reason})");
+        
+        // Extract message directly using dot-notation
+        var messageResult = await client.EvaluateStringFlagAsync("hawkflag.message", "defaultMessage", context);
+        Console.WriteLine($"   hawkflag.message = \"{messageResult.Value}\" (reason: {messageResult.Reason})");
+        
+        Console.WriteLine();
+        Console.WriteLine("✨ Benefits of dot-notation:");
+        Console.WriteLine("   • Type-safe: Get the exact type you need (string, bool, number)");
+        Console.WriteLine("   • Clean code: No manual dictionary navigation");
+        Console.WriteLine("   • Default values: Built-in fallback if property doesn't exist");
+        Console.WriteLine("   • Performance: Direct extraction without deserializing entire structure");
+        
+        // Demo with hypothetical nested structure
+        Console.WriteLine();
+        Console.WriteLine("🏗️  Example with deeper nesting (would work with appropriate flag structure):");
+        Console.WriteLine("   await client.EvaluateBooleanFlagAsync(\"user-settings.preferences.darkMode\", false, context);");
+        Console.WriteLine("   await client.EvaluateNumericFlagAsync(\"app-config.performance.cacheTimeout\", 1000.0, context);");
+        Console.WriteLine("   await client.EvaluateStringFlagAsync(\"ui-config.theme.primaryColor\", \"#000000\", context);");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error demonstrating dot-notation feature");
+        Console.WriteLine($"❌ Error: {ex.Message}");
+    }
 }
