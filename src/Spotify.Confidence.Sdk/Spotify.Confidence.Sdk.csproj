@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <PackageId>Spotify.Confidence.Sdk</PackageId>
-    <Version>0.0.1</Version>
+    <Version>0.0.1</Version> <!--x-release-please-version -->
     <Authors>Spotify</Authors>
     <Company>Spotify</Company>
     <Description>Spotify Confidence SDK for .NET</Description>
