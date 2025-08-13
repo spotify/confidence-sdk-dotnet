@@ -4,13 +4,26 @@
         <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>Spotify.Confidence.OpenFeature</RootNamespace>
+        <IsPackable>true</IsPackable>
+        <PackageId>Spotify.Confidence.OpenFeature</PackageId>
+        <Version>0.0.1</Version>
+        <Authors>Spotify</Authors>
+        <Company>Spotify</Company>
+        <Description>Spotify Confidence DotNet provider for OpenFeature</Description>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/spotify/confidence-sdk-dotnet</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/spotify/confidence-sdk-dotnet</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>feature-flags;feature-management;confidence;openfeature</PackageTags>
+        
 
-         
-    <!-- Enable built-in .NET code analysis -->
-    <AnalysisMode>Recommended</AnalysisMode>
-    <AnalysisModeSecurity>All</AnalysisModeSecurity>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+        <!-- Enable built-in .NET code analysis -->
+        <AnalysisMode>Recommended</AnalysisMode>
+        <AnalysisModeSecurity>All</AnalysisModeSecurity>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     </PropertyGroup>
 
     <ItemGroup>
