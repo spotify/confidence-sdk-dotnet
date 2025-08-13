@@ -186,6 +186,22 @@ internal static class DotNotationHelper
             {
                 return (T)(object)element.GetDouble();
             }
+            else if (typeof(T) == typeof(int))
+            {
+                return (T)(object)element.GetInt32();
+            }
+            else if (typeof(T) == typeof(long))
+            {
+                return (T)(object)element.GetInt64();
+            }
+            else if (typeof(T) == typeof(float))
+            {
+                return (T)(object)element.GetSingle();
+            }
+            else if (typeof(T) == typeof(decimal))
+            {
+                return (T)(object)element.GetDecimal();
+            }
             else
             {
                 // For complex objects, deserialize using JsonSerializer

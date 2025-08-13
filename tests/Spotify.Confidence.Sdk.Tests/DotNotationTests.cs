@@ -170,6 +170,209 @@ public class DotNotationTests
     }
 
     [Fact]
+    public void ExtractTypedValue_IntegerConversion_ReturnsCorrectType()
+    {
+        // Arrange
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse("42").RootElement
+            }
+        };
+        var flagKey = "test-flag";
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<int>(flag, flagKey, 0);
+
+        // Assert
+        Assert.Null(errorMessage);
+        Assert.Equal(42, result);
+        Assert.IsType<int>(result);
+    }
+
+    [Fact]
+    public void ExtractTypedValue_LongConversion_ReturnsCorrectType()
+    {
+        // Arrange
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse("9223372036854775807").RootElement // Max long value
+            }
+        };
+        var flagKey = "test-flag";
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<long>(flag, flagKey, 0L);
+
+        // Assert
+        Assert.Null(errorMessage);
+        Assert.Equal(9223372036854775807L, result);
+        Assert.IsType<long>(result);
+    }
+
+    [Fact]
+    public void ExtractTypedValue_FloatConversion_ReturnsCorrectType()
+    {
+        // Arrange
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse("3.14159").RootElement
+            }
+        };
+        var flagKey = "test-flag";
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<float>(flag, flagKey, 0.0f);
+
+        // Assert
+        Assert.Null(errorMessage);
+        Assert.Equal(3.14159f, result, precision: 5);
+        Assert.IsType<float>(result);
+    }
+
+    [Fact]
+    public void ExtractTypedValue_DecimalConversion_ReturnsCorrectType()
+    {
+        // Arrange
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse("123.456789").RootElement
+            }
+        };
+        var flagKey = "test-flag";
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<decimal>(flag, flagKey, 0.0m);
+
+        // Assert
+        Assert.Null(errorMessage);
+        Assert.Equal(123.456789m, result);
+        Assert.IsType<decimal>(result);
+    }
+
+    [Theory]
+    [InlineData("42", 42)]
+    [InlineData("0", 0)]
+    [InlineData("-123", -123)]
+    [InlineData("2147483647", 2147483647)] // Max int value
+    [InlineData("-2147483648", -2147483648)] // Min int value
+    public void ExtractTypedValue_IntegerVariousValues_ReturnsCorrectValues(string jsonValue, int expectedValue)
+    {
+        // Arrange
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse(jsonValue).RootElement
+            }
+        };
+        var flagKey = "test-flag";
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<int>(flag, flagKey, 0);
+
+        // Assert
+        Assert.Null(errorMessage);
+        Assert.Equal(expectedValue, result);
+    }
+
+    [Theory]
+    [InlineData("3.14", 3.14f)]
+    [InlineData("0.0", 0.0f)]
+    [InlineData("-2.5", -2.5f)]
+    [InlineData("1.23e10", 1.23e10f)]
+    public void ExtractTypedValue_FloatVariousValues_ReturnsCorrectValues(string jsonValue, float expectedValue)
+    {
+        // Arrange
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse(jsonValue).RootElement
+            }
+        };
+        var flagKey = "test-flag";
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<float>(flag, flagKey, 0.0f);
+
+        // Assert
+        Assert.Null(errorMessage);
+        Assert.Equal(expectedValue, result, precision: 5);
+    }
+
+    [Fact]
+    public void ExtractTypedValue_WithDotNotation_ExtractsNestedNumericTypes()
+    {
+        // Arrange
+        var jsonString = """
+        {
+            "settings": {
+                "timeout": 5000,
+                "maxRetries": 9223372036854775807,
+                "threshold": 2.5,
+                "budget": 999.99
+            }
+        }
+        """;
+        var flag = new ResolvedFlag
+        {
+            Flag = "app-config",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse(jsonString).RootElement
+            }
+        };
+
+        // Act & Assert - Test int extraction
+        var (intResult, intError) = DotNotationHelper.ExtractTypedValue<int>(flag, "app-config.settings.timeout", 0);
+        Assert.Null(intError);
+        Assert.Equal(5000, intResult);
+
+        // Act & Assert - Test long extraction
+        var (longResult, longError) = DotNotationHelper.ExtractTypedValue<long>(flag, "app-config.settings.maxRetries", 0L);
+        Assert.Null(longError);
+        Assert.Equal(9223372036854775807L, longResult);
+
+        // Act & Assert - Test float extraction
+        var (floatResult, floatError) = DotNotationHelper.ExtractTypedValue<float>(flag, "app-config.settings.threshold", 0.0f);
+        Assert.Null(floatError);
+        Assert.Equal(2.5f, floatResult);
+
+        // Act & Assert - Test decimal extraction
+        var (decimalResult, decimalError) = DotNotationHelper.ExtractTypedValue<decimal>(flag, "app-config.settings.budget", 0.0m);
+        Assert.Null(decimalError);
+        Assert.Equal(999.99m, decimalResult);
+    }
+
+    [Fact]
     public void ExtractTypedValue_WithDotNotation_ExtractsNestedProperty()
     {
         // Arrange

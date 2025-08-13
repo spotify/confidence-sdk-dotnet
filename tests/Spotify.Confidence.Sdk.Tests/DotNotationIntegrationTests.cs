@@ -434,6 +434,178 @@ public class DotNotationIntegrationTests : IDisposable
             .ReturnsAsync(response);
     }
 
+    [Fact]
+    public async Task EvaluateNumericFlagAsync_WithDotNotation_ExtractsIntegerProperty()
+    {
+        // Arrange
+        var flagKey = "app-config.performance.maxConnections";
+        var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
+
+        var flagValue = new Dictionary<string, object>
+        {
+            ["value"] = JsonDocument.Parse("""
+            {
+                "performance": {
+                    "maxConnections": 100,
+                    "timeout": 5000.5
+                }
+            }
+            """).RootElement
+        };
+
+        SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
+        {
+            ResolvedFlags = new[]
+            {
+                new ResolvedFlag
+                {
+                    Flag = "flags/app-config",
+                    Variant = "optimized",
+                    Reason = "MATCH",
+                    Value = flagValue
+                }
+            }
+        });
+
+        // Act - Note: Even though the source is int, EvaluateNumericFlagAsync returns double
+        var result = await _client.EvaluateNumericFlagAsync(flagKey, 50.0, context);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal(100.0, result.Value); // JsonElement.GetDouble() converts int to double
+        Assert.Equal("MATCH", result.Reason);
+        Assert.Equal("optimized", result.Variant);
+    }
+
+    [Fact]
+    public async Task EvaluateJsonFlagAsync_WithDotNotation_ExtractsComplexNumericTypes()
+    {
+        // Arrange
+        var flagKey = "metrics.stats";
+        var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
+
+        var flagValue = new Dictionary<string, object>
+        {
+            ["value"] = JsonDocument.Parse("""
+            {
+                "stats": {
+                    "count": 42,
+                    "totalSize": 9223372036854775807,
+                    "avgLatency": 123.456,
+                    "budget": 999.99
+                }
+            }
+            """).RootElement
+        };
+
+        SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
+        {
+            ResolvedFlags = new[]
+            {
+                new ResolvedFlag
+                {
+                    Flag = "flags/metrics",
+                    Variant = "detailed",
+                    Reason = "MATCH",
+                    Value = flagValue
+                }
+            }
+        });
+
+        // Act
+        var result = await _client.EvaluateJsonFlagAsync(flagKey, new { }, context);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        var resultElement = Assert.IsType<JsonElement>(result.Value);
+        
+        // Verify all numeric types are accessible
+        Assert.Equal(42, resultElement.GetProperty("count").GetInt32());
+        Assert.Equal(9223372036854775807L, resultElement.GetProperty("totalSize").GetInt64());
+        Assert.Equal(123.456, resultElement.GetProperty("avgLatency").GetDouble(), precision: 3);
+        Assert.Equal(999.99m, resultElement.GetProperty("budget").GetDecimal());
+        
+        Assert.Equal("MATCH", result.Reason);
+        Assert.Equal("detailed", result.Variant);
+    }
+
+    [Theory]
+    [InlineData("config.maxRetries", 3, "3")]
+    [InlineData("config.timeout", 5000, "5000")]
+    [InlineData("config.batchSize", 100, "100")]
+    [InlineData("config.port", 8080, "8080")]
+    public async Task EvaluateNumericFlagAsync_WithDotNotation_HandlesVariousIntegerValues(string flagKey, int expectedIntValue, string jsonValue)
+    {
+        // Arrange
+        var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
+
+        var flagValue = new Dictionary<string, object>
+        {
+            ["value"] = JsonDocument.Parse($"{{\"maxRetries\": {jsonValue}, \"timeout\": {jsonValue}, \"batchSize\": {jsonValue}, \"port\": {jsonValue}}}").RootElement
+        };
+
+        SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
+        {
+            ResolvedFlags = new[]
+            {
+                new ResolvedFlag
+                {
+                    Flag = "flags/config",
+                    Variant = "test",
+                    Reason = "MATCH",
+                    Value = flagValue
+                }
+            }
+        });
+
+        // Act
+        var result = await _client.EvaluateNumericFlagAsync(flagKey, 0.0, context);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal((double)expectedIntValue, result.Value);
+        Assert.Equal("MATCH", result.Reason);
+        Assert.Equal("test", result.Variant);
+    }
+
+    [Theory]
+    [InlineData("pricing.standardRate", 19.99)]
+    [InlineData("pricing.premiumRate", 39.99)]
+    [InlineData("pricing.discountRate", 9.99)]
+    public async Task EvaluateNumericFlagAsync_WithDotNotation_HandlesDecimalValues(string flagKey, decimal expectedValue)
+    {
+        // Arrange
+        var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
+
+        var flagValue = new Dictionary<string, object>
+        {
+            ["value"] = JsonDocument.Parse($"{{\"standardRate\": 19.99, \"premiumRate\": 39.99, \"discountRate\": 9.99}}").RootElement
+        };
+
+        SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
+        {
+            ResolvedFlags = new[]
+            {
+                new ResolvedFlag
+                {
+                    Flag = "flags/pricing",
+                    Variant = "current",
+                    Reason = "MATCH",
+                    Value = flagValue
+                }
+            }
+        });
+
+        // Act
+        var result = await _client.EvaluateNumericFlagAsync(flagKey, 0.0, context);
+
+        // Assert
+        Assert.True(result.IsSuccess);
+        Assert.Equal((double)expectedValue, result.Value, precision: 2);
+        Assert.Equal("MATCH", result.Reason);
+        Assert.Equal("current", result.Variant);
+    }
+
     public void Dispose()
     {
         _client?.Dispose();
