@@ -19,7 +19,6 @@ jobs:
         uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          command: manifest
 
       # Optionally show outputs for debugging
       - name: Debug release outputs
