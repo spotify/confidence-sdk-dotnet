@@ -5,7 +5,13 @@
       "release-type": "simple",
       "monorepo-tags": false,
       "include-component-in-tag": false,
-      "versioning": "default"
+      "versioning": "default",
+      "extra-files": [
+        "README.md",
+        "src/Spotify.Confidence.Sdk/Spotify.Confidence.Sdk.csproj",
+        "src/Spotify.Confidence.OpenFeature/Spotify.Confidence.OpenFeature.csproj",
+        "tests/Spotify.Confidence.Sdk.Tests/ConfidenceClientTests.cs"
+      ]
     }
   },
   "changelog-sections": [
