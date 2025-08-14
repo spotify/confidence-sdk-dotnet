@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
         <PackageId>Spotify.Confidence.OpenFeature</PackageId>
-        <Version>0.0.1</Version> <!--x-release-please-version -->
+        <Version>0.1.0</Version> <!--x-release-please-version -->
         <Authors>Spotify</Authors>
         <Company>Spotify</Company>
         <Description>Spotify Confidence DotNet provider for OpenFeature</Description>
