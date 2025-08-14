@@ -23,7 +23,10 @@ jobs:
       - name: Debug release outputs
         if: ${{ always() }}
         run: |
-          echo "release outputs: ${{ toJSON(steps.release.outputs) }}"
+          echo "release_created: ${{ steps.release.outputs.release_created }}"
+          echo "releases_created: ${{ steps.release.outputs.releases_created }}"
+          echo "prs_created: ${{ steps.release.outputs.prs_created }}"
+          echo "########################################################"
 
   pack-and-push:
     needs: release-please
