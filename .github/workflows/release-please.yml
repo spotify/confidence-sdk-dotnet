@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run release-please
-        id: release-please-task
+        id: release-please-step
         uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -23,15 +23,17 @@ jobs:
       - name: Debug release outputs
         if: ${{ always() }}
         run: |
-          echo "release_created: ${{ steps.release.outputs.release_created }}"
-          echo "releases_created: ${{ steps.release.outputs.releases_created }}"
-          echo "prs_created: ${{ steps.release.outputs.prs_created }}"
+          echo "release_created: ${{ steps.release-please-step.outputs.release_created }}"
+          echo "releases_created: ${{ steps.release-please-step.outputs.releases_created }}"
+          echo "prs_created: ${{ steps.release-please-step.outputs.prs_created }}"
           echo "########################################################"
-
+    outputs:
+      release_created: ${{ steps.release-please-step.outputs.release_created || steps.release-please-step.outputs.releases_created }}
+        
   pack-and-push:
-    needs: release-please-task
+    needs: release-please
     runs-on: ubuntu-latest
-    if: ${{ needs.release-please-task.outputs.release_created || needs.release-please-task.outputs.releases_created }}
+    if: ${{ needs.release-please.outputs.release_created || needs.release-please.outputs.releases_created }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
