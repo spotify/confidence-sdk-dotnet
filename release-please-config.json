@@ -1,5 +1,5 @@
 {
-  "bootstrap-sha": "a9dea30614c01694f785d93cbcc5d92c04cbe5f3",
+  "bootstrap-sha": "e7ac2f4f59e1690d382af83284177e92c0367029",
   "packages": {
     "src/Spotify.Confidence.Sdk": {
       "component": "spotify-confidence-sdk-dotnet",
