@@ -27,7 +27,6 @@ jobs:
           echo "releases_created: ${{ steps.release.outputs.releases_created }}"
           echo "prs_created: ${{ steps.release.outputs.prs_created }}"
           echo "########################################################"
-          echo "release outputs: ${{ steps.release.outputs }}"
 
   pack-and-push:
     needs: release-please
