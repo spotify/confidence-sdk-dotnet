@@ -1,4 +1,4 @@
-name: release-please
+name: release-handling-workflow
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run release-please
-        id: release
+        id: release-please-task
         uses: googleapis/release-please-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -27,12 +27,11 @@ jobs:
           echo "releases_created: ${{ steps.release.outputs.releases_created }}"
           echo "prs_created: ${{ steps.release.outputs.prs_created }}"
           echo "########################################################"
-          echo "release outputs: ${{ steps.release.outputs }}"
 
   pack-and-push:
-    needs: release-please
+    needs: release-please-task
     runs-on: ubuntu-latest
-    if: ${{ needs.release-please.outputs.release_created || needs.release-please.outputs.releases_created }}
+    if: ${{ needs.release-please-task.outputs.release_created || needs.release-please-task.outputs.releases_created }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

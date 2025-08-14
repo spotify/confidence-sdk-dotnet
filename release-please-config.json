@@ -1,15 +1,7 @@
 {
-  "bootstrap-sha": "a9dea30614c01694f785d93cbcc5d92c04cbe5f3",
+  "bootstrap-sha": "79821390e2c7d95f9abc445734b32027c3987e48",
   "packages": {
-    "src/Spotify.Confidence.Sdk": {
-      "component": "spotify-confidence-sdk-dotnet",
-      "release-type": "simple",
-      "monorepo-tags": false,
-      "include-component-in-tag": false,
-      "versioning": "default"
-    },
-    "src/Spotify.Confidence.OpenFeature": {
-      "component": "spotify-confidence-openfeature-dotnet",
+    ".": {
       "release-type": "simple",
       "monorepo-tags": false,
       "include-component-in-tag": false,
