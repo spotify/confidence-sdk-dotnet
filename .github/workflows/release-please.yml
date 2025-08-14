@@ -28,15 +28,20 @@ jobs:
           echo "prs_created: ${{ steps.release-please-step.outputs.prs_created }}"
           echo "########################################################"
     outputs:
-      release_created: ${{ steps.release-please-step.outputs.release_created || steps.release-please-step.outputs.releases_created }}
+      release_created: ${{ steps.release-please-step.outputs.release_created }}
+      release_tag: ${{ steps.release-please-step.outputs.tag_name }}
         
   pack-and-push:
     needs: release-please
     runs-on: ubuntu-latest
-    if: ${{ needs.release-please.outputs.release_created || needs.release-please.outputs.releases_created }}
+    if: ${{ needs.release-please.outputs.release_created }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with: 
+          ref: ${{ needs.release-please.outputs.release_tag }}
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
