@@ -348,6 +348,65 @@ public class WasmResolver : IDisposable
     }
 
     /// <summary>
+    /// Sets the resolver state in the WASM module.
+    /// </summary>
+    /// <param name="stateBytes">The serialized ResolverState protobuf bytes to set in the resolver</param>
+    /// <returns>True if the state was set successfully, false otherwise</returns>
+    public bool SetResolverState(byte[] stateBytes)
+    {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(WasmResolver));
+        }
+
+        if (stateBytes == null || stateBytes.Length == 0)
+        {
+            _logger.LogWarning("Cannot set empty or null resolver state");
+            return false;
+        }
+
+        if (_instance == null)
+        {
+            _logger.LogWarning("Cannot set resolver state: WASM instance not initialized");
+            return false;
+        }
+
+        try
+        {
+            // Allocate memory in WASM for the state bytes
+            var statePtr = AllocateMemory(stateBytes.Length);
+            WriteToMemory(statePtr, stateBytes);
+
+            // Find the set resolver state function
+            var setStateFunction = _instance.GetFunction("wasm_msg_guest_set_resolver_state");
+            
+            // Call the function with the state pointer
+            var result = setStateFunction.Invoke(statePtr);
+            
+            // Deallocate the memory
+            DeallocateMemory(statePtr);
+            
+            var success = result != null && Convert.ToInt32(result) == 0; // Assuming 0 means success
+            
+            if (success)
+            {
+                _logger.LogInformation("Successfully set resolver state ({Length} bytes)", stateBytes.Length);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to set resolver state, WASM function returned: {Result}", result);
+            }
+            
+            return success;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting resolver state in WASM module");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Resolves a feature flag using the WASM module.
     /// </summary>
     /// <param name="request">The resolve request containing flag key, context, and credentials.</param>

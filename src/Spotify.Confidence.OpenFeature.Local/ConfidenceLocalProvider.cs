@@ -10,6 +10,7 @@ using OpenFeature.Constant;
 using OpenFeature.Model;
 using Spotify.Confidence.OpenFeature.Local.Logging;
 using Spotify.Confidence.OpenFeature.Local.Models;
+using Spotify.Confidence.OpenFeature.Local.Services;
 
 namespace Spotify.Confidence.OpenFeature.Local;
 
@@ -18,13 +19,16 @@ namespace Spotify.Confidence.OpenFeature.Local;
 /// </summary>
 public class ConfidenceLocalProvider : FeatureProvider, IDisposable
 {
+    public const string Version = "0.1.0"; // TODO: Get this from the csproj
     private readonly ILogger<ConfidenceLocalProvider> _logger;
     private readonly string _clientId;
     private readonly string _clientSecret;
     private readonly WasmResolver? _wasmResolver;
+    private readonly ConfidenceStateService _stateService;
     private const string ProviderName = "ConfidenceLocal";
     private const string DefaultWasmResourceName = "Resources.rust_guest.wasm";
     private bool _disposed;
+    private bool _initialized;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfidenceLocalProvider"/> class using the embedded WASM resolver.
@@ -37,6 +41,9 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         _clientId = clientId ?? throw new ArgumentNullException(nameof(clientId));
         _clientSecret = clientSecret ?? throw new ArgumentNullException(nameof(clientSecret));
         _logger = logger ?? NullLogger<ConfidenceLocalProvider>.Instance;
+        
+        // Initialize the state service for network operations  
+        _stateService = new ConfidenceStateService(_clientId, _clientSecret);
         
         try
         {
@@ -54,6 +61,142 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     public override Metadata? GetMetadata()
     {
         return new Metadata(ProviderName);
+    }
+
+    /// <summary>
+    /// Initializes the provider by fetching resolver state from the Confidence backend
+    /// and setting it in the WASM resolver.
+    /// </summary>
+    /// <param name="context">Initialization context (optional)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Task representing the initialization operation</returns>
+    public override async Task InitializeAsync(EvaluationContext? context = null, CancellationToken cancellationToken = default)
+    {
+        if (_initialized)
+        {
+            _logger.LogDebug("Provider already initialized, skipping");
+            return;
+        }
+
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(ConfidenceLocalProvider));
+        }
+
+        try
+        {
+            _logger.LogInformation("Initializing ConfidenceLocalProvider - fetching resolver state");
+            Console.WriteLine("[ConfidenceLocalProvider] Starting initialization process");
+
+            // Step 1: Fetch the resolver state from the backend
+            Console.WriteLine("[ConfidenceLocalProvider] Step 1: Fetching resolver state");
+            var stateBytes = await _stateService.FetchResolverStateAsync(cancellationToken);
+            
+            if (stateBytes == null || stateBytes.Length == 0)
+            {
+                Console.WriteLine("[ConfidenceLocalProvider] ERROR: Failed to fetch resolver state");
+                _logger.LogError("Failed to fetch resolver state - provider will go to error state");
+                await EmitProviderErrorEvent("Failed to fetch resolver state from backend");
+                return;
+            }
+
+            Console.WriteLine($"[ConfidenceLocalProvider] Step 2: Validating {stateBytes.Length} bytes of state");
+            if (!_stateService.ValidateState(stateBytes))
+            {
+                Console.WriteLine("[ConfidenceLocalProvider] ERROR: State validation failed");
+                _logger.LogError("Fetched resolver state is invalid - provider will go to error state");
+                await EmitProviderErrorEvent("Fetched resolver state is invalid");
+                return;
+            }
+
+            Console.WriteLine("[ConfidenceLocalProvider] Step 3: Setting state in WASM resolver");
+            if (_wasmResolver == null)
+            {
+                Console.WriteLine("[ConfidenceLocalProvider] ERROR: WASM resolver not available");
+                _logger.LogError("WASM resolver not available - provider will go to error state");
+                await EmitProviderErrorEvent("WASM resolver not available");
+                return;
+            }
+
+            Console.WriteLine($"[ConfidenceLocalProvider] Setting resolver state with {stateBytes.Length} bytes");
+            var stateSetSuccessfully = _wasmResolver.SetResolverState(stateBytes);
+            
+            if (!stateSetSuccessfully)
+            {
+                Console.WriteLine("[ConfidenceLocalProvider] ERROR: Failed to set state in WASM module");
+                _logger.LogError("Failed to set resolver state in WASM module - provider will go to error state");
+                await EmitProviderErrorEvent("Failed to set resolver state in WASM module");
+                return;
+            }
+
+            // Step 4: All steps successful - mark as initialized and emit ProviderReady event
+            Console.WriteLine("[ConfidenceLocalProvider] SUCCESS: All initialization steps completed successfully");
+            _initialized = true;
+            
+            // Emit the ProviderReady event on the EventChannel
+            await EmitProviderReadyEvent();
+            
+            _logger.LogInformation("ConfidenceLocalProvider initialization completed successfully");
+            Console.WriteLine("[ConfidenceLocalProvider] Provider is now READY");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ConfidenceLocalProvider] EXCEPTION during initialization: {ex.Message}");
+            _logger.LogError(ex, "Error during ConfidenceLocalProvider initialization");
+            
+            // Mark as initialized to prevent retries but emit error event
+            _initialized = true;
+            
+            // Emit the ProviderError event instead of ProviderReady
+            await EmitProviderErrorEvent($"Initialization failed: {ex.Message}");
+            
+            _logger.LogError("ConfidenceLocalProvider initialization failed with exception");
+        }
+    }
+
+    /// <summary>
+    /// Emits the ProviderReady event to notify that the provider is ready for use.
+    /// </summary>
+    private async Task EmitProviderReadyEvent()
+    {
+        try
+        {
+            // Create a simple event object indicating the provider is ready
+            var providerReadyEvent = new { Type = "ProviderReady", Provider = ProviderName, Timestamp = DateTimeOffset.UtcNow };
+            
+            // Write to the EventChannel
+            await EventChannel.Writer.WriteAsync(providerReadyEvent);
+            
+            _logger.LogInformation("Emitted ProviderReady event for {ProviderName}", ProviderName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to emit ProviderReady event");
+            // Don't propagate this error - it's not critical for provider functionality
+        }
+    }
+
+    /// <summary>
+    /// Emits the ProviderError event to notify that the provider encountered an error.
+    /// </summary>
+    private async Task EmitProviderErrorEvent(string errorMessage)
+    {
+        try
+        {
+            // Create an event object indicating the provider has an error
+            var providerErrorEvent = new { Type = "ProviderError", Provider = ProviderName, Message = errorMessage, Timestamp = DateTimeOffset.UtcNow };
+            
+            // Write to the EventChannel
+            await EventChannel.Writer.WriteAsync(providerErrorEvent);
+            
+            _logger.LogError("Emitted ProviderError event for {ProviderName}: {ErrorMessage}", ProviderName, errorMessage);
+            Console.WriteLine($"[ConfidenceLocalProvider] Emitted ProviderError event: {errorMessage}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to emit ProviderError event");
+            // Don't propagate this error - it's not critical for provider functionality
+        }
     }
 
     public override async Task<ResolutionDetails<bool>> ResolveBooleanValueAsync(
@@ -207,11 +350,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         return ImmutableList<Hook>.Empty;
     }
 
-    public override Task InitializeAsync(EvaluationContext context, CancellationToken cancellationToken = default)
-    {
-        ConfidenceLocalProviderLogger.InitializingProvider(_logger, context?.AsDictionary(), null);
-        return Task.CompletedTask;
-    }
+
 
     public override Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
@@ -381,6 +520,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         try
         {
             _wasmResolver?.Dispose();
+            _stateService?.Dispose();
         }
         catch (Exception ex)
         {

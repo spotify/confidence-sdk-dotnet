@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package rust_guest;
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "confidence/flags/admin/v1/internal_api.proto";
+import "confidence/flags/resolver/v1/events/events.proto";
+import "confidence/flags/admin/v1/types.proto";
+import "confidence/flags/resolver/v1/types.proto";
+import "confidence/iam/iam.proto";
+
+message LogResolveRequest {
+  string resolve_id = 1;
+  google.protobuf.Struct evaluation_context = 2;
+  repeated ResolvedValue value = 3;
+  Client client = 4;
+  optional confidence.flags.resolver.v1.Sdk sdk = 5;
+}
+
+message LogAssignRequest {
+  string resolve_id = 1;
+  google.protobuf.Struct evaluation_context = 2;
+  repeated FlagToApply assigned_flags = 3;
+  optional confidence.flags.resolver.v1.Sdk sdk = 5;
+  Client client = 6;
+}
+
+message FlagToApply {
+  google.protobuf.Timestamp skew_adjusted_applied_time = 1;
+  AssignedFlag assigned_flags = 2;
+}
+
+message AssignedFlag {
+  string flag = 1;
+
+  string targeting_key = 2;
+  string targeting_key_selector = 10;
+
+  string segment = 3;
+
+  string variant = 4;
+
+  string rule = 5;
+
+  confidence.flags.resolver.v1.ResolveReason reason = 6;
+
+  repeated confidence.flags.resolver.v1.events.FallthroughAssignment fallthrough_assignments = 9;
+
+  string assignment_id = 8;
+}
+
+message Client {
+  Account account = 1;
+  string client_name = 2;
+  string client_credential_name = 3;
+}
+
+message Account {
+  string name = 1;
+}
+
+message ResolvedValue {
+  confidence.flags.admin.v1.Flag flag = 1;
+  optional AssignmentMatch assignment_match = 2;
+  repeated FallthroughRule fallthrough_rules = 3;
+  confidence.flags.resolver.v1.ResolveReason reason = 4;
+}
+
+message AssignmentMatch {
+  string assignment_id = 1;
+  optional Variant variant = 2;
+  optional MatchedRule matched_rule = 3;
+  string targeting_key = 4;
+  string segment = 5;
+}
+
+message Variant {
+  string name = 1;
+  optional google.protobuf.Struct value = 2;
+}
+
+message MatchedRule {
+  string name = 1;
+}
+
+message FallthroughRule {
+  string targeting_key = 1;
+  string targeting_key_selector = 2;
+  string assignment_id = 3;
+  string name = 4;
+}

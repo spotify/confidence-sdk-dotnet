@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using OpenFeature;
 using OpenFeature.Model;
 using Spotify.Confidence.OpenFeature.Local;
+using DotNetEnv;
 
 // Setup logging
 using var loggerFactory = LoggerFactory.Create(builder =>
@@ -17,10 +18,29 @@ try
 {
     logger.LogInformation("Starting Local Provider Example");
 
+    // Load environment variables from .env file
+    Env.Load();
+
+    // Get credentials from environment variables
+    var clientId = Environment.GetEnvironmentVariable("CONFIDENCE_CLIENT_ID");
+    var clientSecret = Environment.GetEnvironmentVariable("CONFIDENCE_CLIENT_SECRET");
+
+    if (string.IsNullOrEmpty(clientId))
+    {
+        throw new InvalidOperationException("CONFIDENCE_CLIENT_ID environment variable is required. Please set it in your .env file.");
+    }
+
+    if (string.IsNullOrEmpty(clientSecret))
+    {
+        throw new InvalidOperationException("CONFIDENCE_CLIENT_SECRET environment variable is required. Please set it in your .env file.");
+    }
+
+    logger.LogInformation("Loaded credentials from environment variables");
+
     // Create the local provider with embedded WASM resource (rust_guest.wasm)
     var localProvider = new ConfidenceLocalProvider(
-        clientId: "example-client-id",
-        clientSecret: "example-client-secret",
+        clientId: clientId,
+        clientSecret: clientSecret,
         logger: loggerFactory.CreateLogger<ConfidenceLocalProvider>());
 
     // Set the provider
@@ -44,7 +64,7 @@ try
     var booleanFlag = await client.GetBooleanDetailsAsync("feature.newUI", false, context);
     logger.LogInformation("Boolean flag 'feature.newUI': {Value} (variant: {Variant}, reason: {Reason})", 
         booleanFlag.Value, booleanFlag.Variant, booleanFlag.Reason);
-
+/*
     var stringFlag = await client.GetStringDetailsAsync("theme.color", "blue", context);
     logger.LogInformation("String flag 'theme.color': {Value} (variant: {Variant}, reason: {Reason})", 
         stringFlag.Value, stringFlag.Variant, stringFlag.Reason);
@@ -61,7 +81,7 @@ try
     var nestedFlag = await client.GetBooleanDetailsAsync("config.features.darkMode", false, context);
     logger.LogInformation("Nested flag 'config.features.darkMode': {Value} (variant: {Variant}, reason: {Reason})", 
         nestedFlag.Value, nestedFlag.Variant, nestedFlag.Reason);
-
+*/
     // Clean up
     localProvider.Dispose();
     logger.LogInformation("Local provider disposed successfully");

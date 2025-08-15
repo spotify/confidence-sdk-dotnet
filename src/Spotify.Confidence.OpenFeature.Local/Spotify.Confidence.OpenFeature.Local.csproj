@@ -39,6 +39,18 @@
         <PackageReference Include="OpenFeature" Version="2.7.0" />
         <PackageReference Include="Wasmtime" Version="34.0.2" />
         <PackageReference Include="System.Text.Json" Version="9.0.0" />
+        
+        <!-- gRPC packages -->
+        <PackageReference Include="Grpc.Net.Client" Version="2.65.0" />
+        <PackageReference Include="Grpc.Core" Version="2.46.6" />
+        <PackageReference Include="Grpc.Tools" Version="2.65.0" PrivateAssets="All" />
+        <PackageReference Include="Google.Protobuf" Version="3.27.0" />
+        <PackageReference Include="Google.Api.CommonProtos" Version="2.15.0" />
+        
+        <!-- JWT handling -->
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
+        
+        <!-- Code analysis packages -->
         <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
         <PackageReference Include="Roslynator.Analyzers" Version="4.14.0" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
         <PackageReference Include="SonarAnalyzer.CSharp" Version="10.15.0.120848" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
@@ -47,6 +59,11 @@
 
     <ItemGroup>
         <EmbeddedResource Include="Resources\rust_guest.wasm" />
+    </ItemGroup>
+
+    <!-- gRPC Proto compilation -->
+    <ItemGroup>
+        <Protobuf Include="Protos\**\*.proto" Exclude="Protos\google\**\*.proto" GrpcServices="Client" ProtoRoot="Protos" />
     </ItemGroup>
 
 </Project>
