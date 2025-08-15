@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenFeatureExample", "examp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Spotify.Confidence.OpenFeature.Local", "src\Spotify.Confidence.OpenFeature.Local\Spotify.Confidence.OpenFeature.Local.csproj", "{2C8E5B1F-3A4D-4E5F-8C9A-1B2D3E4F5678}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LocalProviderExample", "examples\LocalProviderExample\LocalProviderExample.csproj", "{9F8E7D6C-5B4A-3E2F-1C0D-8A9B7E6F5432}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -60,6 +62,10 @@ Global
 		{2C8E5B1F-3A4D-4E5F-8C9A-1B2D3E4F5678}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C8E5B1F-3A4D-4E5F-8C9A-1B2D3E4F5678}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C8E5B1F-3A4D-4E5F-8C9A-1B2D3E4F5678}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F8E7D6C-5B4A-3E2F-1C0D-8A9B7E6F5432}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F8E7D6C-5B4A-3E2F-1C0D-8A9B7E6F5432}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F8E7D6C-5B4A-3E2F-1C0D-8A9B7E6F5432}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F8E7D6C-5B4A-3E2F-1C0D-8A9B7E6F5432}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{317ACC12-A5D7-4202-8B05-06143B215020} = {99662064-1066-43F1-8141-E1C6F76D17F9}
@@ -69,5 +75,6 @@ Global
 		{10BD5783-B0FD-4912-8699-FA2231D607C0} = {32CD7F50-1DF5-44F6-99BA-633A74B82A4E}
 		{0A4C536B-BE19-47CD-8292-930C0246BE1E} = {73A9D493-61F5-45DF-9A39-0902F93A6DC6}
 		{2C8E5B1F-3A4D-4E5F-8C9A-1B2D3E4F5678} = {99662064-1066-43F1-8141-E1C6F76D17F9}
+		{9F8E7D6C-5B4A-3E2F-1C0D-8A9B7E6F5432} = {73A9D493-61F5-45DF-9A39-0902F93A6DC6}
 	EndGlobalSection
 EndGlobal

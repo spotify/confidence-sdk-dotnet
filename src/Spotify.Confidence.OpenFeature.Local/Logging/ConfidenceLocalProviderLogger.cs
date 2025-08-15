@@ -26,6 +26,18 @@ internal static class ConfidenceLocalProviderLogger
             new EventId(3017, "ShuttingDownLocalProvider"),
             "Shutting down ConfidenceLocalProvider");
 
+    public static readonly Action<ILogger, string, Exception?> WasmInitializationFailed =
+        LoggerMessage.Define<string>(
+            LogLevel.Error,
+            new EventId(3018, "WasmInitializationFailed"),
+            "Failed to initialize WASM resolver from embedded resource {WasmResourceName}");
+
+    public static readonly Action<ILogger, Exception?> WasmDisposalError =
+        LoggerMessage.Define(
+            LogLevel.Warning,
+            new EventId(3019, "WasmDisposalError"),
+            "Error disposing WASM resolver");
+
     // Boolean flag resolution events
     public static readonly Action<ILogger, string, object?, Exception?> ResolvingBooleanFlag =
         LoggerMessage.Define<string, object?>(
