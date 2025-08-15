@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Spotify.Confidence.OpenFeature.Local</PackageId>
+        <Version>0.1.0</Version> <!--x-release-please-version -->
+        <Authors>Spotify</Authors>
+        <Company>Spotify</Company>
+        <Description>Spotify Confidence DotNet local provider for OpenFeature</Description>
+        <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/spotify/confidence-sdk-dotnet</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/spotify/confidence-sdk-dotnet</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>feature-flags;feature-management;confidence;openfeature;local</PackageTags>
+        
+
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+        <!-- Enable built-in .NET code analysis -->
+        <AnalysisMode>Recommended</AnalysisMode>
+        <AnalysisModeSecurity>All</AnalysisModeSecurity>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+            <_Parameter1>Spotify.Confidence.OpenFeature.Local.Tests</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+        <PackageReference Include="OpenFeature" Version="2.7.0" />
+        <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+        <PackageReference Include="Roslynator.Analyzers" Version="4.14.0" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+        <PackageReference Include="SonarAnalyzer.CSharp" Version="10.15.0.120848" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+        <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+    </ItemGroup>
+
+</Project>
