@@ -3,16 +3,17 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Confidence.Flags.Resolver.V1;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenFeature;
 using OpenFeature.Constant;
 using OpenFeature.Model;
 using Spotify.Confidence.OpenFeature.Local.Logging;
-using Spotify.Confidence.OpenFeature.Local.Services;
 using Spotify.Confidence.OpenFeature.Local.Models;
-using Confidence.Flags.Resolver.V1;
-using Google.Protobuf.WellKnownTypes;
+using Spotify.Confidence.OpenFeature.Local.Services;
+using Spotify.Confidence.Common.Utils;
 using ProtobufValue = Google.Protobuf.WellKnownTypes.Value;
 
 namespace Spotify.Confidence.OpenFeature.Local;
@@ -47,6 +48,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         _clientSecret = clientSecret ?? throw new ArgumentNullException(nameof(clientSecret));
         _resolverClientSecret = resolverClientSecret ?? clientSecret;
         _logger = logger ?? NullLogger<ConfidenceLocalProvider>.Instance;
+        
         
         // Initialize the state service for network operations  
         _stateService = new ConfidenceStateService(_clientId, _clientSecret);
@@ -144,7 +146,6 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         Console.WriteLine("[ConfidenceLocalProvider] Provider is now READY");
     }
 
-
     public override async Task<ResolutionDetails<bool>> ResolveBooleanValueAsync(
         string flagKey,
         bool defaultValue,
@@ -153,25 +154,70 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     {
         ConfidenceLocalProviderLogger.ResolvingBooleanFlag(_logger, flagKey, defaultValue, null);
         
-        var result = await ResolveValueAsync(flagKey, context, cancellationToken);
-        
-        if (result.Success && result.Value is Dictionary<string, object> value && value.TryGetValue("value", out var boolValueObj) && boolValueObj is bool boolValue)
+        try
         {
-            ConfidenceLocalProviderLogger.ResolvedBooleanFlag(_logger, flagKey, boolValue, null);
-            return new ResolutionDetails<bool>(
-                flagKey,
-                boolValue,
-                ErrorType.None,
-                variant: result.Variant,
-                reason: result.Reason ?? "RESOLVED");
+            // Parse dot-notation to get base flag name
+            var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
+            
+            // Resolve the base flag (without dot notation)
+            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            
+            if (!result.Success)
+            {
+                ConfidenceLocalProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, null);
+                return new ResolutionDetails<bool>(
+                    flagKey,
+                    defaultValue,
+                    ErrorType.General,
+                    reason: result.Error ?? "DEFAULT");
+            }
+
+            // Extract value using DotNotationHelper (similar to SDK pattern)
+            if (result.Value is Dictionary<string, object> flagValue)
+            {
+                var extractedValue = DotNotationHelper.ExtractFlagValue(flagValue, propertyPath);
+                
+                // Convert to bool
+                bool typedValue;
+                if (extractedValue is bool directBool)
+                {
+                    typedValue = directBool;
+                }
+                else
+                {
+                    // If we have a property path but couldn't extract the value, return default
+                    if (propertyPath.Length > 0)
+                    {
+                        ConfidenceLocalProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, null);
+                        return new ResolutionDetails<bool>(
+                            flagKey,
+                            defaultValue,
+                            ErrorType.General,
+                            reason: $"Property path '{string.Join(".", propertyPath)}' not found or invalid type");
+                    }
+                    // Fallback for regular flag resolution
+                    typedValue = defaultValue;
+                }
+
+                ConfidenceLocalProviderLogger.ResolvedBooleanFlag(_logger, flagKey, typedValue, null);
+                return new ResolutionDetails<bool>(
+                    flagKey,
+                    typedValue,
+                    ErrorType.None,
+                    variant: result.Variant,
+                    reason: result.Reason ?? "RESOLVED");
+            }
+        }
+        catch (Exception ex)
+        {
+            ConfidenceLocalProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, ex);
         }
         
-        ConfidenceLocalProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, null);
         return new ResolutionDetails<bool>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: result.Error ?? "DEFAULT");
+            reason: "DEFAULT");
     }
 
     public override async Task<ResolutionDetails<string>> ResolveStringValueAsync(
@@ -182,25 +228,74 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     {
         ConfidenceLocalProviderLogger.ResolvingStringFlag(_logger, flagKey, defaultValue, null);
         
-        var result = await ResolveValueAsync(flagKey, context, cancellationToken);
-        
-        if (result.Success && result.Value is Dictionary<string, object> value && value.TryGetValue("value", out var stringValueObj) && stringValueObj is string stringValue)
+        try
         {
-            ConfidenceLocalProviderLogger.ResolvedStringFlag(_logger, flagKey, stringValue, null);
-            return new ResolutionDetails<string>(
-                flagKey,
-                stringValue,
-                ErrorType.None,
-                variant: result.Variant,
-                reason: result.Reason ?? "RESOLVED");
+            // Parse dot-notation to get base flag name
+            var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
+            
+            // Resolve the base flag (without dot notation)
+            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            
+            if (!result.Success)
+            {
+                ConfidenceLocalProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, null);
+                return new ResolutionDetails<string>(
+                    flagKey,
+                    defaultValue,
+                    ErrorType.General,
+                    reason: result.Error ?? "DEFAULT");
+            }
+
+            // Extract value using DotNotationHelper (similar to SDK pattern)
+            if (result.Value is Dictionary<string, object> flagValue)
+            {
+                var extractedValue = DotNotationHelper.ExtractFlagValue(flagValue, propertyPath);
+                
+                // Convert to string
+                string typedValue;
+                if (extractedValue is string directString)
+                {
+                    typedValue = directString;
+                }
+                else if (extractedValue != null)
+                {
+                    typedValue = extractedValue.ToString() ?? defaultValue;
+                }
+                else
+                {
+                    // If we have a property path but couldn't extract the value, return default
+                    if (propertyPath.Length > 0)
+                    {
+                        ConfidenceLocalProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, null);
+                        return new ResolutionDetails<string>(
+                            flagKey,
+                            defaultValue,
+                            ErrorType.General,
+                            reason: $"Property path '{string.Join(".", propertyPath)}' not found");
+                    }
+                    // Fallback for regular flag resolution
+                    typedValue = defaultValue;
+                }
+
+                ConfidenceLocalProviderLogger.ResolvedStringFlag(_logger, flagKey, typedValue, null);
+                return new ResolutionDetails<string>(
+                    flagKey,
+                    typedValue,
+                    ErrorType.None,
+                    variant: result.Variant,
+                    reason: result.Reason ?? "RESOLVED");
+            }
+        }
+        catch (Exception ex)
+        {
+            ConfidenceLocalProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, ex);
         }
         
-        ConfidenceLocalProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, null);
         return new ResolutionDetails<string>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: result.Error ?? "DEFAULT");
+            reason: "DEFAULT");
     }
 
     public override async Task<ResolutionDetails<int>> ResolveIntegerValueAsync(
@@ -211,25 +306,78 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     {
         ConfidenceLocalProviderLogger.ResolvingIntegerFlag(_logger, flagKey, defaultValue, null);
         
-        var result = await ResolveValueAsync(flagKey, context, cancellationToken);
-        
-        if (result.Success && result.Value is Dictionary<string, object> value && value.TryGetValue("value", out var intValueObj) && intValueObj is int intValue)
+        try
         {
-            ConfidenceLocalProviderLogger.ResolvedIntegerFlag(_logger, flagKey, intValue, null);
-            return new ResolutionDetails<int>(
-                flagKey,
-                intValue,
-                ErrorType.None,
-                variant: result.Variant,
-                reason: result.Reason ?? "RESOLVED");
+            // Parse dot-notation to get base flag name
+            var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
+            
+            // Resolve the base flag (without dot notation)
+            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            
+            if (!result.Success)
+            {
+                ConfidenceLocalProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, null);
+                return new ResolutionDetails<int>(
+                    flagKey,
+                    defaultValue,
+                    ErrorType.General,
+                    reason: result.Error ?? "DEFAULT");
+            }
+
+            // Extract value using DotNotationHelper (similar to SDK pattern)
+            if (result.Value is Dictionary<string, object> flagValue)
+            {
+                var extractedValue = DotNotationHelper.ExtractFlagValue(flagValue, propertyPath);
+                
+                // Convert to int
+                int typedValue;
+                if (extractedValue is int directInt)
+                {
+                    typedValue = directInt;
+                }
+                else if (extractedValue is double doubleValue && doubleValue % 1 == 0)
+                {
+                    typedValue = (int)doubleValue;
+                }
+                else if (extractedValue is long longValue)
+                {
+                    typedValue = (int)longValue;
+                }
+                else
+                {
+                    // If we have a property path but couldn't extract the value, return default
+                    if (propertyPath.Length > 0)
+                    {
+                        ConfidenceLocalProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, null);
+                        return new ResolutionDetails<int>(
+                            flagKey,
+                            defaultValue,
+                            ErrorType.General,
+                            reason: $"Property path '{string.Join(".", propertyPath)}' not found or invalid type");
+                    }
+                    // Fallback for regular flag resolution
+                    typedValue = defaultValue;
+                }
+
+                ConfidenceLocalProviderLogger.ResolvedIntegerFlag(_logger, flagKey, typedValue, null);
+                return new ResolutionDetails<int>(
+                    flagKey,
+                    typedValue,
+                    ErrorType.None,
+                    variant: result.Variant,
+                    reason: result.Reason ?? "RESOLVED");
+            }
+        }
+        catch (Exception ex)
+        {
+            ConfidenceLocalProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, ex);
         }
         
-        ConfidenceLocalProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, null);
         return new ResolutionDetails<int>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: result.Error ?? "DEFAULT");
+            reason: "DEFAULT");
     }
 
     public override async Task<ResolutionDetails<double>> ResolveDoubleValueAsync(
@@ -240,25 +388,82 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     {
         ConfidenceLocalProviderLogger.ResolvingDoubleFlag(_logger, flagKey, defaultValue, null);
         
-        var result = await ResolveValueAsync(flagKey, context, cancellationToken);
-        
-        if (result.Success && result.Value is Dictionary<string, object> value && value.TryGetValue("value", out var doubleValueObj) && doubleValueObj is double doubleValue)
+        try
         {
-            ConfidenceLocalProviderLogger.ResolvedDoubleFlag(_logger, flagKey, doubleValue, null);
-            return new ResolutionDetails<double>(
-                flagKey,
-                doubleValue,
-                ErrorType.None,
-                variant: result.Variant,
-                reason: result.Reason ?? "RESOLVED");
+            // Parse dot-notation to get base flag name
+            var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
+            
+            // Resolve the base flag (without dot notation)
+            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            
+            if (!result.Success)
+            {
+                ConfidenceLocalProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, null);
+                return new ResolutionDetails<double>(
+                    flagKey,
+                    defaultValue,
+                    ErrorType.General,
+                    reason: result.Error ?? "DEFAULT");
+            }
+
+            // Extract value using DotNotationHelper (similar to SDK pattern)
+            if (result.Value is Dictionary<string, object> flagValue)
+            {
+                var extractedValue = DotNotationHelper.ExtractFlagValue(flagValue, propertyPath);
+                
+                // Convert to double
+                double typedValue;
+                if (extractedValue is double directDouble)
+                {
+                    typedValue = directDouble;
+                }
+                else if (extractedValue is int intValue)
+                {
+                    typedValue = (double)intValue;
+                }
+                else if (extractedValue is float floatValue)
+                {
+                    typedValue = (double)floatValue;
+                }
+                else if (extractedValue is long longValue)
+                {
+                    typedValue = (double)longValue;
+                }
+                else
+                {
+                    // If we have a property path but couldn't extract the value, return default
+                    if (propertyPath.Length > 0)
+                    {
+                        ConfidenceLocalProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, null);
+                        return new ResolutionDetails<double>(
+                            flagKey,
+                            defaultValue,
+                            ErrorType.General,
+                            reason: $"Property path '{string.Join(".", propertyPath)}' not found or invalid type");
+                    }
+                    // Fallback for regular flag resolution
+                    typedValue = defaultValue;
+                }
+
+                ConfidenceLocalProviderLogger.ResolvedDoubleFlag(_logger, flagKey, typedValue, null);
+                return new ResolutionDetails<double>(
+                    flagKey,
+                    typedValue,
+                    ErrorType.None,
+                    variant: result.Variant,
+                    reason: result.Reason ?? "RESOLVED");
+            }
+        }
+        catch (Exception ex)
+        {
+            ConfidenceLocalProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, ex);
         }
         
-        ConfidenceLocalProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, null);
         return new ResolutionDetails<double>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: result.Error ?? "DEFAULT");
+            reason: "DEFAULT");
     }
 
     public override async Task<ResolutionDetails<global::OpenFeature.Model.Value>> ResolveStructureValueAsync(
@@ -269,26 +474,62 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     {
         ConfidenceLocalProviderLogger.ResolvingStructureFlag(_logger, flagKey, defaultValue, null);
         
-        var result = await ResolveValueAsync(flagKey, context, cancellationToken);
-        
-        if (result.Success && result.Value != null)
+        try
         {
-            var value = ConvertToOpenFeatureValue(result.Value);
-            ConfidenceLocalProviderLogger.ResolvedStructureFlag(_logger, flagKey, null);
-            return new ResolutionDetails<global::OpenFeature.Model.Value>(
-                flagKey,
-                value,
-                ErrorType.None,
-                variant: result.Variant,
-                reason: result.Reason ?? "RESOLVED");
+            // Parse dot-notation to get base flag name
+            var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
+            
+            // Resolve the base flag (without dot notation)
+            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            
+            if (!result.Success)
+            {
+                ConfidenceLocalProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, null);
+                return new ResolutionDetails<global::OpenFeature.Model.Value>(
+                    flagKey,
+                    defaultValue,
+                    ErrorType.General,
+                    reason: result.Error ?? "DEFAULT");
+            }
+
+            // Extract value using DotNotationHelper (similar to SDK pattern)
+            if (result.Value is Dictionary<string, object> flagValue)
+            {
+                var extractedValue = DotNotationHelper.ExtractFlagValue(flagValue, propertyPath);
+                
+                if (extractedValue != null)
+                {
+                    var value = ConvertToOpenFeatureValue(extractedValue);
+                    ConfidenceLocalProviderLogger.ResolvedStructureFlag(_logger, flagKey, null);
+                    return new ResolutionDetails<global::OpenFeature.Model.Value>(
+                        flagKey,
+                        value,
+                        ErrorType.None,
+                        variant: result.Variant,
+                        reason: result.Reason ?? "RESOLVED");
+                }
+                else if (propertyPath.Length > 0)
+                {
+                    // Property path specified but not found
+                    ConfidenceLocalProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, null);
+                    return new ResolutionDetails<global::OpenFeature.Model.Value>(
+                        flagKey,
+                        defaultValue,
+                        ErrorType.General,
+                        reason: $"Property path '{string.Join(".", propertyPath)}' not found");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ConfidenceLocalProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, ex);
         }
         
-        ConfidenceLocalProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, null);
         return new ResolutionDetails<global::OpenFeature.Model.Value>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: result.Error ?? "DEFAULT");
+            reason: "DEFAULT");
     }
 
     public override IImmutableList<Hook> GetProviderHooks()
@@ -296,13 +537,21 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         return ImmutableList<Hook>.Empty;
     }
 
-
-
     public override Task ShutdownAsync(CancellationToken cancellationToken = default)
     {
         ConfidenceLocalProviderLogger.ShuttingDownProvider(_logger, null);
         Dispose();
         return Task.CompletedTask;
+    }
+
+
+    private static string GetFullFlagKey(string flagKey)
+    {
+        if (flagKey.StartsWith("flags/", StringComparison.Ordinal))
+        {
+            return flagKey;
+        }
+        return $"flags/{flagKey}";
     }
 
     /// <summary>
@@ -335,7 +584,8 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             ClientSecret = _resolverClientSecret,
             Apply = true,
         };
-        request.Flags.Add(flagKey);
+        
+        request.Flags.Add(GetFullFlagKey(flagKey));
         
         var contextDict = ConvertEvaluationContext(context);
         request.EvaluationContext = ConvertDictionaryToStruct(contextDict);

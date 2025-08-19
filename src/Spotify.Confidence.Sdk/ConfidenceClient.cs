@@ -13,7 +13,7 @@ using Spotify.Confidence.Sdk.Exceptions;
 using Spotify.Confidence.Sdk.Logging;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
-using Spotify.Confidence.Sdk.Utils;
+using Spotify.Confidence.Common.Utils;
 
 namespace Spotify.Confidence.Sdk;
 
@@ -489,7 +489,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
                 return EvaluationResult.Failure(defaultValue, $"Flag '{baseFlagName}' not found in response");
             }
 
-            var (value, errorMessage) = DotNotationHelper.ExtractTypedValue(flag, flagKey, defaultValue, _jsonOptions);
+            var (value, errorMessage) = DotNotationHelper.ExtractTypedValue(flag.Value, flagKey, defaultValue, _jsonOptions);
             
             if (errorMessage != null)
             {

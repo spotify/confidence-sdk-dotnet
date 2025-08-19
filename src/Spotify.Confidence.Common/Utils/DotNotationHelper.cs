@@ -1,12 +1,11 @@
 using System.Text.Json;
-using Spotify.Confidence.Sdk.Models;
 
-namespace Spotify.Confidence.Sdk.Utils;
+namespace Spotify.Confidence.Common.Utils;
 
 /// <summary>
 /// Helper class for handling dot-notation parsing and value navigation in confidence flags.
 /// </summary>
-internal static class DotNotationHelper
+public static class DotNotationHelper
 {
     /// <summary>
     /// Parses a dot-notation string into flag name and property path.
@@ -98,9 +97,9 @@ internal static class DotNotationHelper
     }
 
     /// <summary>
-    /// Extracts the appropriate value from a ResolvedFlag, handling both dot-notation and regular flags.
+    /// Extracts the appropriate value from a flag value dictionary, handling both dot-notation and regular flags.
     /// </summary>
-    /// <param name="flagValue">The Value dictionary from a ResolvedFlag</param>
+    /// <param name="flagValue">The Value dictionary from a flag</param>
     /// <param name="propertyPath">The property path to navigate (empty for regular flags)</param>
     /// <returns>The extracted value</returns>
     public static object? ExtractFlagValue(Dictionary<string, object> flagValue, string[] propertyPath)
@@ -119,16 +118,16 @@ internal static class DotNotationHelper
     }
 
     /// <summary>
-    /// Extracts and converts a typed value from a ResolvedFlag using dot-notation.
+    /// Extracts and converts a typed value from a flag value dictionary using dot-notation.
     /// </summary>
     /// <typeparam name="T">The target type to convert the value to</typeparam>
-    /// <param name="flag">The resolved flag</param>
+    /// <param name="flagValue">The value dictionary from the flag</param>
     /// <param name="flagKey">The original flag key (may contain dot-notation)</param>
     /// <param name="defaultValue">The default value to return if extraction fails</param>
     /// <param name="jsonOptions">JSON serializer options for complex type conversion</param>
     /// <returns>A tuple containing the typed value and any error message</returns>
     public static (T Value, string? ErrorMessage) ExtractTypedValue<T>(
-        ResolvedFlag flag, 
+        Dictionary<string, object> flagValue, 
         string flagKey, 
         T defaultValue, 
         JsonSerializerOptions? jsonOptions = null)
@@ -139,11 +138,11 @@ internal static class DotNotationHelper
             var (_, propertyPath) = ParseDotNotation(flagKey);
             
             // Extract the raw value
-            var value = ExtractFlagValue(flag.Value, propertyPath);
+            var value = ExtractFlagValue(flagValue, propertyPath);
             
             if (value == null && propertyPath.Length > 0)
             {
-                return (defaultValue, $"Property path '{string.Join(".", propertyPath)}' not found in flag '{flag.Flag}'");
+                return (defaultValue, $"Property path '{string.Join(".", propertyPath)}' not found in flag");
             }
 
             // Convert to target type

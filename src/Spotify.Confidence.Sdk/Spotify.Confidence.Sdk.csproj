@@ -40,4 +40,8 @@
     <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Spotify.Confidence.Common\Spotify.Confidence.Common.csproj" />
+  </ItemGroup>
+
 </Project>

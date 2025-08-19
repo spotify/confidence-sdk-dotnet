@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        
+        <!-- Enable built-in .NET code analysis -->
+        <AnalysisMode>Recommended</AnalysisMode>
+        <AnalysisModeSecurity>All</AnalysisModeSecurity>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.Text.Json" Version="8.0.5" />
+        
+        <!-- Code analysis packages -->
+        <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
+        <PackageReference Include="Roslynator.Analyzers" Version="4.14.0" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+        <PackageReference Include="SonarAnalyzer.CSharp" Version="10.15.0.120848" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+        <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />
+    </ItemGroup>
+
+</Project>

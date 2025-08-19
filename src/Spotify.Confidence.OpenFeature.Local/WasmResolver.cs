@@ -91,7 +91,7 @@ public class WasmResolver : IDisposable
                     // Import 4: wasm_msg_host_current_time - (param i32) (result i32)
                     Function.FromCallback(_store, (int ptr) => 
                     {
-                        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                        var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                         WasmResolverLogger.WasmImportCalledWithTimestamp(_logger, "wasm_msg_host_current_time", ptr, timestamp);
                         return (int)timestamp; // Return current time as i32
                     })

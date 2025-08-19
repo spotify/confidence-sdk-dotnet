@@ -79,10 +79,14 @@ try
     logger.LogInformation("Evaluating flags with context: targeting_key=user123, country=SE, premium=true, age=25");
 
     // Evaluate different types of flags
+    var jsonFlag = await client.GetObjectDetailsAsync("recommendations", new OpenFeature.Model.Value(), context);
+    logger.LogInformation("JSON flag 'recommendations': {Value} (variant: {Variant}, reason: {Reason})", 
+        jsonFlag.Value, jsonFlag.Variant, jsonFlag.Reason);
+
+/*
     var stringFlag = await client.GetStringDetailsAsync("tutorial-feature.title", "Hello World", context);
     logger.LogInformation("String flag 'tutorial-feature.title': {Value} (variant: {Variant}, reason: {Reason})", 
         stringFlag.Value, stringFlag.Variant, stringFlag.Reason);
-/*
     var stringFlag = await client.GetStringDetailsAsync("theme.color", "blue", context);
     logger.LogInformation("String flag 'theme.color': {Value} (variant: {Variant}, reason: {Reason})", 
         stringFlag.Value, stringFlag.Variant, stringFlag.Reason);

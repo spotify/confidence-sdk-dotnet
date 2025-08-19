@@ -58,6 +58,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\Spotify.Confidence.Common\Spotify.Confidence.Common.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <EmbeddedResource Include="Resources\rust_guest.wasm" />
     </ItemGroup>
 
