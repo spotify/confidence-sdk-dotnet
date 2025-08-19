@@ -12,6 +12,7 @@ This example demonstrates how to use the Confidence Local Provider with environm
    # Edit .env with your actual credentials
    CONFIDENCE_CLIENT_ID=your-actual-client-id
    CONFIDENCE_CLIENT_SECRET=your-actual-client-secret
+   CONFIDENCE_RESOLVER_CLIENT_SECRET=your-resolver-client-secret 
    ```
 
 2. **Run the Example**:
@@ -24,8 +25,8 @@ This example demonstrates how to use the Confidence Local Provider with environm
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `CONFIDENCE_CLIENT_ID` | ✅ | Your Confidence API client ID |
-| `CONFIDENCE_CLIENT_SECRET` | ✅ | Your Confidence API client secret |
-| `CONFIDENCE_API_URL` | ❌ | Override the default API URL (defaults to `https://resolver.confidence.dev`) |
+| `CONFIDENCE_CLIENT_SECRET` | ✅ | Your Confidence API client secret for state fetching |
+| `CONFIDENCE_RESOLVER_CLIENT_SECRET` | ❌ | Optional separate client secret for resolve operations. If not provided, uses the main client secret |
 
 ## Security Notes
 
@@ -42,6 +43,8 @@ info: Program[0]
       Starting Local Provider Example
 info: Program[0]
       Loaded credentials from environment variables
+info: Program[0]
+      Using separate client secret for resolver operations
 info: Spotify.Confidence.OpenFeature.Local.ConfidenceLocalProvider[3000]
       ConfidenceLocalProvider initialized
 ...

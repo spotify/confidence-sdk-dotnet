@@ -24,6 +24,7 @@ try
     // Get credentials from environment variables
     var clientId = Environment.GetEnvironmentVariable("CONFIDENCE_CLIENT_ID");
     var clientSecret = Environment.GetEnvironmentVariable("CONFIDENCE_CLIENT_SECRET");
+    var resolverClientSecret = Environment.GetEnvironmentVariable("CONFIDENCE_RESOLVER_CLIENT_SECRET");
 
     if (string.IsNullOrEmpty(clientId))
     {
@@ -36,19 +37,36 @@ try
     }
 
     logger.LogInformation("Loaded credentials from environment variables");
+    
+    if (!string.IsNullOrEmpty(resolverClientSecret))
+    {
+        logger.LogInformation("Using separate client secret for resolver operations");
+    }
 
     // Create the local provider with embedded WASM resource (rust_guest.wasm)
     var localProvider = new ConfidenceLocalProvider(
         clientId: clientId,
         clientSecret: clientSecret,
+        resolverClientSecret: resolverClientSecret,
         logger: loggerFactory.CreateLogger<ConfidenceLocalProvider>());
 
-    // Set the provider
-    await Api.Instance.SetProviderAsync(localProvider);
-    logger.LogInformation("Local provider set successfully");
+    // Set the provider - this will trigger initialization
+    try 
+    {
+        logger.LogInformation("Setting provider and starting initialization...");
+        await Api.Instance.SetProviderAsync(localProvider);
+        logger.LogInformation("✅ Provider initialization completed successfully!");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "❌ Provider initialization failed: {Message}", ex.Message);
+        logger.LogError("Please check the provider configuration and logs above for more details.");
+        return 1; // Exit with error code since provider failed to initialize
+    }
 
-    // Get the OpenFeature client
+    // Get the OpenFeature client (only proceed if provider initialized successfully)
     var client = Api.Instance.GetClient();
+
 
     // Create evaluation context
     var context = EvaluationContext.Builder()
@@ -61,9 +79,9 @@ try
     logger.LogInformation("Evaluating flags with context: targeting_key=user123, country=SE, premium=true, age=25");
 
     // Evaluate different types of flags
-    var booleanFlag = await client.GetBooleanDetailsAsync("feature.newUI", false, context);
-    logger.LogInformation("Boolean flag 'feature.newUI': {Value} (variant: {Variant}, reason: {Reason})", 
-        booleanFlag.Value, booleanFlag.Variant, booleanFlag.Reason);
+    var stringFlag = await client.GetStringDetailsAsync("tutorial-feature.title", "Hello World", context);
+    logger.LogInformation("String flag 'tutorial-feature.title': {Value} (variant: {Variant}, reason: {Reason})", 
+        stringFlag.Value, stringFlag.Variant, stringFlag.Reason);
 /*
     var stringFlag = await client.GetStringDetailsAsync("theme.color", "blue", context);
     logger.LogInformation("String flag 'theme.color': {Value} (variant: {Variant}, reason: {Reason})", 
@@ -89,7 +107,8 @@ try
 catch (Exception ex)
 {
     logger.LogError(ex, "Error in Local Provider Example");
-    throw;
+    return 1; // Exit with error code
 }
 
 logger.LogInformation("Local Provider Example completed");
+return 0; // Success exit code

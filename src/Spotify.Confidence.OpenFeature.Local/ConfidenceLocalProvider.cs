@@ -9,8 +9,11 @@ using OpenFeature;
 using OpenFeature.Constant;
 using OpenFeature.Model;
 using Spotify.Confidence.OpenFeature.Local.Logging;
-using Spotify.Confidence.OpenFeature.Local.Models;
 using Spotify.Confidence.OpenFeature.Local.Services;
+using Spotify.Confidence.OpenFeature.Local.Models;
+using Confidence.Flags.Resolver.V1;
+using Google.Protobuf.WellKnownTypes;
+using ProtobufValue = Google.Protobuf.WellKnownTypes.Value;
 
 namespace Spotify.Confidence.OpenFeature.Local;
 
@@ -23,6 +26,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     private readonly ILogger<ConfidenceLocalProvider> _logger;
     private readonly string _clientId;
     private readonly string _clientSecret;
+    private readonly string _resolverClientSecret;
     private readonly WasmResolver? _wasmResolver;
     private readonly ConfidenceStateService _stateService;
     private const string ProviderName = "ConfidenceLocal";
@@ -34,20 +38,29 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     /// Initializes a new instance of the <see cref="ConfidenceLocalProvider"/> class using the embedded WASM resolver.
     /// </summary>
     /// <param name="clientId">The client ID for authentication.</param>
-    /// <param name="clientSecret">The client secret for authentication.</param>
+    /// <param name="clientSecret">The client secret for authentication and state fetching.</param>
+    /// <param name="resolverClientSecret">Optional client secret specifically for resolve operations. If not provided, uses the main client secret.</param>
     /// <param name="logger">Optional logger instance. If not provided, a null logger will be used.</param>
-    public ConfidenceLocalProvider(string clientId, string clientSecret, ILogger<ConfidenceLocalProvider>? logger = null)
+    public ConfidenceLocalProvider(string clientId, string clientSecret, string? resolverClientSecret = null, ILogger<ConfidenceLocalProvider>? logger = null)
     {
         _clientId = clientId ?? throw new ArgumentNullException(nameof(clientId));
         _clientSecret = clientSecret ?? throw new ArgumentNullException(nameof(clientSecret));
+        _resolverClientSecret = resolverClientSecret ?? clientSecret;
         _logger = logger ?? NullLogger<ConfidenceLocalProvider>.Instance;
         
         // Initialize the state service for network operations  
         _stateService = new ConfidenceStateService(_clientId, _clientSecret);
-        
+        // Setup logging
+    using var loggerFactory = LoggerFactory.Create(builder =>
+{
+    builder
+        .SetMinimumLevel(LogLevel.Debug)
+        .AddConsole();
+});
+
         try
         {
-            _wasmResolver = new WasmResolver(DefaultWasmResourceName, assembly: null);
+            _wasmResolver = new WasmResolver(DefaultWasmResourceName, assembly: null, logger: loggerFactory.CreateLogger<WasmResolver>());
         }
         catch (Exception ex)
         {
@@ -83,121 +96,54 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             throw new ObjectDisposedException(nameof(ConfidenceLocalProvider));
         }
 
-        try
+        _logger.LogInformation("Initializing ConfidenceLocalProvider - fetching resolver state");
+        Console.WriteLine("[ConfidenceLocalProvider] Starting initialization process");
+
+        // Step 1: Fetch the resolver state from the backend
+        Console.WriteLine("[ConfidenceLocalProvider] Step 1: Fetching resolver state");
+        var stateBytes = await _stateService.FetchResolverStateAsync(cancellationToken);
+        
+        if (stateBytes == null || stateBytes.Length == 0)
         {
-            _logger.LogInformation("Initializing ConfidenceLocalProvider - fetching resolver state");
-            Console.WriteLine("[ConfidenceLocalProvider] Starting initialization process");
-
-            // Step 1: Fetch the resolver state from the backend
-            Console.WriteLine("[ConfidenceLocalProvider] Step 1: Fetching resolver state");
-            var stateBytes = await _stateService.FetchResolverStateAsync(cancellationToken);
-            
-            if (stateBytes == null || stateBytes.Length == 0)
-            {
-                Console.WriteLine("[ConfidenceLocalProvider] ERROR: Failed to fetch resolver state");
-                _logger.LogError("Failed to fetch resolver state - provider will go to error state");
-                await EmitProviderErrorEvent("Failed to fetch resolver state from backend");
-                return;
-            }
-
-            Console.WriteLine($"[ConfidenceLocalProvider] Step 2: Validating {stateBytes.Length} bytes of state");
-            if (!_stateService.ValidateState(stateBytes))
-            {
-                Console.WriteLine("[ConfidenceLocalProvider] ERROR: State validation failed");
-                _logger.LogError("Fetched resolver state is invalid - provider will go to error state");
-                await EmitProviderErrorEvent("Fetched resolver state is invalid");
-                return;
-            }
-
-            Console.WriteLine("[ConfidenceLocalProvider] Step 3: Setting state in WASM resolver");
-            if (_wasmResolver == null)
-            {
-                Console.WriteLine("[ConfidenceLocalProvider] ERROR: WASM resolver not available");
-                _logger.LogError("WASM resolver not available - provider will go to error state");
-                await EmitProviderErrorEvent("WASM resolver not available");
-                return;
-            }
-
-            Console.WriteLine($"[ConfidenceLocalProvider] Setting resolver state with {stateBytes.Length} bytes");
-            var stateSetSuccessfully = _wasmResolver.SetResolverState(stateBytes);
-            
-            if (!stateSetSuccessfully)
-            {
-                Console.WriteLine("[ConfidenceLocalProvider] ERROR: Failed to set state in WASM module");
-                _logger.LogError("Failed to set resolver state in WASM module - provider will go to error state");
-                await EmitProviderErrorEvent("Failed to set resolver state in WASM module");
-                return;
-            }
-
-            // Step 4: All steps successful - mark as initialized and emit ProviderReady event
-            Console.WriteLine("[ConfidenceLocalProvider] SUCCESS: All initialization steps completed successfully");
-            _initialized = true;
-            
-            // Emit the ProviderReady event on the EventChannel
-            await EmitProviderReadyEvent();
-            
-            _logger.LogInformation("ConfidenceLocalProvider initialization completed successfully");
-            Console.WriteLine("[ConfidenceLocalProvider] Provider is now READY");
+            Console.WriteLine("[ConfidenceLocalProvider] ERROR: Failed to fetch resolver state");
+            _logger.LogError("Failed to fetch resolver state - throwing exception");
+            throw new InvalidOperationException("Failed to fetch resolver state from backend");
         }
-        catch (Exception ex)
+
+        Console.WriteLine($"[ConfidenceLocalProvider] Step 2: Validating {stateBytes.Length} bytes of state");
+        if (!_stateService.ValidateState(stateBytes))
         {
-            Console.WriteLine($"[ConfidenceLocalProvider] EXCEPTION during initialization: {ex.Message}");
-            _logger.LogError(ex, "Error during ConfidenceLocalProvider initialization");
-            
-            // Mark as initialized to prevent retries but emit error event
-            _initialized = true;
-            
-            // Emit the ProviderError event instead of ProviderReady
-            await EmitProviderErrorEvent($"Initialization failed: {ex.Message}");
-            
-            _logger.LogError("ConfidenceLocalProvider initialization failed with exception");
+            Console.WriteLine("[ConfidenceLocalProvider] ERROR: State validation failed");
+            _logger.LogError("Fetched resolver state is invalid - throwing exception");
+            throw new InvalidOperationException("Fetched resolver state is invalid");
         }
+
+        Console.WriteLine("[ConfidenceLocalProvider] Step 3: Setting state in WASM resolver");
+        if (_wasmResolver == null)
+        {
+            Console.WriteLine("[ConfidenceLocalProvider] ERROR: WASM resolver not available");
+            _logger.LogError("WASM resolver not available - throwing exception");
+            throw new InvalidOperationException("WASM resolver not available - check if rust_guest.wasm resource is properly embedded");
+        }
+
+        Console.WriteLine($"[ConfidenceLocalProvider] Setting resolver state with {stateBytes.Length} bytes");
+        var stateSetSuccessfully = _wasmResolver.SetResolverState(stateBytes);
+        
+        if (!stateSetSuccessfully)
+        {
+            Console.WriteLine("[ConfidenceLocalProvider] ERROR: Failed to set state in WASM module");
+            _logger.LogError("Failed to set resolver state in WASM module - throwing exception");
+            throw new InvalidOperationException("Failed to set resolver state in WASM module");
+        }
+
+        // Step 4: All steps successful - mark as initialized
+        Console.WriteLine("[ConfidenceLocalProvider] SUCCESS: All initialization steps completed successfully");
+        _initialized = true;
+        
+        _logger.LogInformation("ConfidenceLocalProvider initialization completed successfully");
+        Console.WriteLine("[ConfidenceLocalProvider] Provider is now READY");
     }
 
-    /// <summary>
-    /// Emits the ProviderReady event to notify that the provider is ready for use.
-    /// </summary>
-    private async Task EmitProviderReadyEvent()
-    {
-        try
-        {
-            // Create a simple event object indicating the provider is ready
-            var providerReadyEvent = new { Type = "ProviderReady", Provider = ProviderName, Timestamp = DateTimeOffset.UtcNow };
-            
-            // Write to the EventChannel
-            await EventChannel.Writer.WriteAsync(providerReadyEvent);
-            
-            _logger.LogInformation("Emitted ProviderReady event for {ProviderName}", ProviderName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to emit ProviderReady event");
-            // Don't propagate this error - it's not critical for provider functionality
-        }
-    }
-
-    /// <summary>
-    /// Emits the ProviderError event to notify that the provider encountered an error.
-    /// </summary>
-    private async Task EmitProviderErrorEvent(string errorMessage)
-    {
-        try
-        {
-            // Create an event object indicating the provider has an error
-            var providerErrorEvent = new { Type = "ProviderError", Provider = ProviderName, Message = errorMessage, Timestamp = DateTimeOffset.UtcNow };
-            
-            // Write to the EventChannel
-            await EventChannel.Writer.WriteAsync(providerErrorEvent);
-            
-            _logger.LogError("Emitted ProviderError event for {ProviderName}: {ErrorMessage}", ProviderName, errorMessage);
-            Console.WriteLine($"[ConfidenceLocalProvider] Emitted ProviderError event: {errorMessage}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to emit ProviderError event");
-            // Don't propagate this error - it's not critical for provider functionality
-        }
-    }
 
     public override async Task<ResolutionDetails<bool>> ResolveBooleanValueAsync(
         string flagKey,
@@ -209,7 +155,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         
         var result = await ResolveValueAsync(flagKey, context, cancellationToken);
         
-        if (result.Success && result.Value is bool boolValue)
+        if (result.Success && result.Value is Dictionary<string, object> value && value.TryGetValue("value", out var boolValueObj) && boolValueObj is bool boolValue)
         {
             ConfidenceLocalProviderLogger.ResolvedBooleanFlag(_logger, flagKey, boolValue, null);
             return new ResolutionDetails<bool>(
@@ -238,7 +184,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         
         var result = await ResolveValueAsync(flagKey, context, cancellationToken);
         
-        if (result.Success && result.Value is string stringValue)
+        if (result.Success && result.Value is Dictionary<string, object> value && value.TryGetValue("value", out var stringValueObj) && stringValueObj is string stringValue)
         {
             ConfidenceLocalProviderLogger.ResolvedStringFlag(_logger, flagKey, stringValue, null);
             return new ResolutionDetails<string>(
@@ -267,7 +213,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         
         var result = await ResolveValueAsync(flagKey, context, cancellationToken);
         
-        if (result.Success && result.Value is int intValue)
+        if (result.Success && result.Value is Dictionary<string, object> value && value.TryGetValue("value", out var intValueObj) && intValueObj is int intValue)
         {
             ConfidenceLocalProviderLogger.ResolvedIntegerFlag(_logger, flagKey, intValue, null);
             return new ResolutionDetails<int>(
@@ -296,7 +242,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         
         var result = await ResolveValueAsync(flagKey, context, cancellationToken);
         
-        if (result.Success && result.Value is double doubleValue)
+        if (result.Success && result.Value is Dictionary<string, object> value && value.TryGetValue("value", out var doubleValueObj) && doubleValueObj is double doubleValue)
         {
             ConfidenceLocalProviderLogger.ResolvedDoubleFlag(_logger, flagKey, doubleValue, null);
             return new ResolutionDetails<double>(
@@ -315,9 +261,9 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             reason: result.Error ?? "DEFAULT");
     }
 
-    public override async Task<ResolutionDetails<Value>> ResolveStructureValueAsync(
+    public override async Task<ResolutionDetails<global::OpenFeature.Model.Value>> ResolveStructureValueAsync(
         string flagKey,
-        Value defaultValue,
+        global::OpenFeature.Model.Value defaultValue,
         EvaluationContext? context = null,
         CancellationToken cancellationToken = default)
     {
@@ -329,7 +275,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         {
             var value = ConvertToOpenFeatureValue(result.Value);
             ConfidenceLocalProviderLogger.ResolvedStructureFlag(_logger, flagKey, null);
-            return new ResolutionDetails<Value>(
+            return new ResolutionDetails<global::OpenFeature.Model.Value>(
                 flagKey,
                 value,
                 ErrorType.None,
@@ -338,7 +284,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         }
         
         ConfidenceLocalProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, null);
-        return new ResolutionDetails<Value>(
+        return new ResolutionDetails<global::OpenFeature.Model.Value>(
             flagKey,
             defaultValue,
             ErrorType.General,
@@ -384,51 +330,58 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             };
         }
 
-        var request = new ResolveRequest
+        var request = new ResolveFlagsRequest
         {
-            Flag = flagKey,
-            Context = ConvertEvaluationContext(context),
-            ClientId = _clientId,
-            ClientSecret = _clientSecret
+            ClientSecret = _resolverClientSecret,
+            Apply = true,
         };
+        request.Flags.Add(flagKey);
+        
+        var contextDict = ConvertEvaluationContext(context);
+        request.EvaluationContext = ConvertDictionaryToStruct(contextDict);
 
-        return await _wasmResolver.ResolveAsync(request, cancellationToken);
+        var response = await _wasmResolver.ResolveAsync(request, cancellationToken);
+        
+        if (response.ResolvedFlags.Count > 0)
+        {
+            var resolvedFlag = response.ResolvedFlags[0];
+            return new ResolveResponse
+            {
+                Success = true,
+                Value = ConfidenceLocalProvider.ToDictionary(resolvedFlag.Value),
+                Variant = resolvedFlag.Variant,
+                Reason = resolvedFlag.Reason.ToString()
+            };
+        }
+        
+        return new ResolveResponse
+        {
+            Success = false,
+            Error = "No flags resolved",
+            Reason = "ERROR"
+        };
     }
 
-    /// <summary>
-    /// Converts OpenFeature EvaluationContext to a dictionary for WASM communication.
-    /// </summary>
-    private static Dictionary<string, object> ConvertEvaluationContext(EvaluationContext? context)
+    private static Dictionary<string, object> ToDictionary(Struct value)
     {
-        if (context == null)
+        return value.Fields.ToDictionary(kvp => kvp.Key, kvp => ConfidenceLocalProvider.ConvertValue(kvp.Value));
+    }
+
+    private static object ConvertValue(ProtobufValue value)
+    {
+        return value.KindCase switch
         {
-            return new Dictionary<string, object>();
-        }
-
-        var result = new Dictionary<string, object>();
-
-        // Add targeting key if present
-        if (!string.IsNullOrEmpty(context.TargetingKey))
-        {
-            result["targeting_key"] = context.TargetingKey;
-        }
-
-        // Add all other attributes
-        foreach (var kvp in context.AsDictionary())
-        {
-            if (kvp.Key != "targetingKey") // Avoid duplication
-            {
-                result[kvp.Key] = ConvertValue(kvp.Value);
-            }
-        }
-
-        return result;
+            ProtobufValue.KindOneofCase.BoolValue => value.BoolValue,
+            ProtobufValue.KindOneofCase.NumberValue => value.NumberValue,
+            ProtobufValue.KindOneofCase.StringValue => value.StringValue,
+            _ => value.ToString()
+        };
     }
 
     /// <summary>
     /// Converts OpenFeature Value to a simple object for JSON serialization.
     /// </summary>
-    private static object ConvertValue(Value value)
+    private static object ConvertValue(global::OpenFeature.Model.Value value)
     {
         if (value.IsBoolean)
         {
@@ -475,36 +428,95 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     }
 
     /// <summary>
+    /// Converts a dictionary to a protobuf Struct.
+    /// </summary>
+    private static Struct ConvertDictionaryToStruct(Dictionary<string, object> dictionary)
+    {
+        var structValue = new Struct();
+        foreach (var kvp in dictionary)
+        {
+            structValue.Fields[kvp.Key] = ConvertObjectToValue(kvp.Value);
+        }
+        return structValue;
+    }
+
+    /// <summary>
+    /// Converts an object to a protobuf Value.
+    /// </summary>
+    private static ProtobufValue ConvertObjectToValue(object obj)
+    {
+        return obj switch
+        {
+            null => ProtobufValue.ForNull(),
+            bool b => ProtobufValue.ForBool(b),
+            int i => ProtobufValue.ForNumber(i),
+            double d => ProtobufValue.ForNumber(d),
+            string s => ProtobufValue.ForString(s),
+            _ => ProtobufValue.ForString(obj.ToString() ?? "")
+        };
+    }
+
+    /// <summary>
+    /// Converts OpenFeature EvaluationContext to a dictionary for WASM communication.
+    /// </summary>
+    private static Dictionary<string, object> ConvertEvaluationContext(EvaluationContext? context)
+    {
+        if (context == null)
+        {
+            return new Dictionary<string, object>();
+        }
+
+        var result = new Dictionary<string, object>();
+
+        // Add targeting key if present
+        if (!string.IsNullOrEmpty(context.TargetingKey))
+        {
+            result["targeting_key"] = context.TargetingKey;
+        }
+
+        // Add all other attributes
+        foreach (var kvp in context.AsDictionary())
+        {
+            if (kvp.Key != "targetingKey") // Avoid duplication
+            {
+                result[kvp.Key] = ConvertValue(kvp.Value);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Converts a WASM response value back to an OpenFeature Value.
     /// </summary>
-    private static Value ConvertToOpenFeatureValue(object value)
+    private static global::OpenFeature.Model.Value ConvertToOpenFeatureValue(object value)
     {
         return value switch
         {
-            bool b => new Value(b),
-            int i => new Value(i),
-            long l => new Value((int)l), // Convert long to int for OpenFeature
-            double d => new Value(d),
-            float f => new Value((double)f), // Convert float to double for OpenFeature
-            string s => new Value(s),
-            DateTime dt => new Value(dt),
+            bool b => new global::OpenFeature.Model.Value(b),
+            int i => new global::OpenFeature.Model.Value(i),
+            long l => new global::OpenFeature.Model.Value((int)l), // Convert long to int for OpenFeature
+            double d => new global::OpenFeature.Model.Value(d),
+            float f => new global::OpenFeature.Model.Value((double)f), // Convert float to double for OpenFeature
+            string s => new global::OpenFeature.Model.Value(s),
+            DateTime dt => new global::OpenFeature.Model.Value(dt),
             Dictionary<string, object> dict => ConvertDictionaryToStructure(dict),
-            IEnumerable<object> list => new Value(list.Select(ConvertToOpenFeatureValue).ToList()),
-            _ => new Value()
+            IEnumerable<object> list => new global::OpenFeature.Model.Value(list.Select(ConvertToOpenFeatureValue).ToList()),
+            _ => new global::OpenFeature.Model.Value()
         };
     }
 
     /// <summary>
     /// Converts a dictionary to an OpenFeature Structure Value.
     /// </summary>
-    private static Value ConvertDictionaryToStructure(Dictionary<string, object> dict)
+    private static global::OpenFeature.Model.Value ConvertDictionaryToStructure(Dictionary<string, object> dict)
     {
         var builder = Structure.Builder();
         foreach (var kvp in dict)
         {
             builder.Set(kvp.Key, ConvertToOpenFeatureValue(kvp.Value));
         }
-        return new Value(builder.Build());
+        return new global::OpenFeature.Model.Value(builder.Build());
     }
 
     /// <summary>

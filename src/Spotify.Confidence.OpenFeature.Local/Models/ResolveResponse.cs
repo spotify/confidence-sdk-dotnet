@@ -8,10 +8,10 @@ namespace Spotify.Confidence.OpenFeature.Local.Models;
 public class ResolveResponse
 {
     /// <summary>
-    /// Gets or sets the resolved value.
+    /// Gets or sets the resolved value as a dictionary.
     /// </summary>
     [JsonPropertyName("value")]
-    public object? Value { get; set; }
+    public Dictionary<string, object>? Value { get; set; }
 
     /// <summary>
     /// Gets or sets the variant identifier.
