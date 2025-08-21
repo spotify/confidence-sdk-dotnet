@@ -18,7 +18,37 @@ internal static class ConfidenceLocalProviderLogger
         LoggerMessage.Define<object?>(
             LogLevel.Information,
             new EventId(3016, "InitializingLocalProvider"),
-            "Initializing ConfidenceLocalProvider with context: {Context}");
+            "Initializing ConfidenceLocalProvider with context: {Context}. Fetching resolver state...");
+
+    public static readonly Action<ILogger, Exception?> ErrorFetchingResolverState =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(3017, "ErrorFetchingResolverState"),
+            "Failed to fetch resolver state from backend");
+
+    public static readonly Action<ILogger, Exception?> ErrorValidatingResolverState =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(3018, "ErrorValidatingResolverState"),
+            "Fetched resolver state is invalid");
+
+    public static readonly Action<ILogger, Exception?> ErrorWasmResolverNotAvailable =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(3019, "ErrorWasmResolverNotAvailable"),
+            "WASM resolver not available - check if rust_guest.wasm resource is properly embedded");
+
+    public static readonly Action<ILogger, Exception?> ErrorSettingResolverState =
+        LoggerMessage.Define(
+            LogLevel.Error,
+            new EventId(3020, "ErrorSettingResolverState"),
+            "Failed to set resolver state in WASM module");
+
+    public static readonly Action<ILogger, Exception?> InitializationCompleted =
+        LoggerMessage.Define(
+            LogLevel.Information,
+            new EventId(3021, "InitializationCompleted"),
+            "ConfidenceLocalProvider initialization completed successfully");
 
     public static readonly Action<ILogger, Exception?> ShuttingDownProvider =
         LoggerMessage.Define(

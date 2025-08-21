@@ -67,12 +67,10 @@ try
     // Get the OpenFeature client (only proceed if provider initialized successfully)
     var client = Api.Instance.GetClient();
 
-
     // Create evaluation context
     var context = EvaluationContext.Builder()
         .SetTargetingKey("user123")
-        .Set("country", "SE")
-        .Set("premium", true)
+        .Set("user_id", "nicklas")
         .Set("age", 25)
         .Build();
 
@@ -83,29 +81,29 @@ try
     logger.LogInformation("JSON flag 'recommendations': {Value} (variant: {Variant}, reason: {Reason})", 
         jsonFlag.Value, jsonFlag.Variant, jsonFlag.Reason);
 
-/*
-    var stringFlag = await client.GetStringDetailsAsync("tutorial-feature.title", "Hello World", context);
-    logger.LogInformation("String flag 'tutorial-feature.title': {Value} (variant: {Variant}, reason: {Reason})", 
-        stringFlag.Value, stringFlag.Variant, stringFlag.Reason);
-    var stringFlag = await client.GetStringDetailsAsync("theme.color", "blue", context);
-    logger.LogInformation("String flag 'theme.color': {Value} (variant: {Variant}, reason: {Reason})", 
-        stringFlag.Value, stringFlag.Variant, stringFlag.Reason);
+    /*
+        var stringFlag = await client.GetStringDetailsAsync("tutorial-feature.title", "Hello World", context);
+        logger.LogInformation("String flag 'tutorial-feature.title': {Value} (variant: {Variant}, reason: {Reason})", 
+            stringFlag.Value, stringFlag.Variant, stringFlag.Reason);
+        var stringFlag = await client.GetStringDetailsAsync("theme.color", "blue", context);
+        logger.LogInformation("String flag 'theme.color': {Value} (variant: {Variant}, reason: {Reason})", 
+            stringFlag.Value, stringFlag.Variant, stringFlag.Reason);
 
-    var intFlag = await client.GetIntegerDetailsAsync("limits.maxItems", 10, context);
-    logger.LogInformation("Integer flag 'limits.maxItems': {Value} (variant: {Variant}, reason: {Reason})", 
-        intFlag.Value, intFlag.Variant, intFlag.Reason);
+        var intFlag = await client.GetIntegerDetailsAsync("limits.maxItems", 10, context);
+        logger.LogInformation("Integer flag 'limits.maxItems': {Value} (variant: {Variant}, reason: {Reason})", 
+            intFlag.Value, intFlag.Variant, intFlag.Reason);
 
-    var doubleFlag = await client.GetDoubleDetailsAsync("pricing.discount", 0.1, context);
-    logger.LogInformation("Double flag 'pricing.discount': {Value} (variant: {Variant}, reason: {Reason})", 
-        doubleFlag.Value, doubleFlag.Variant, doubleFlag.Reason);
+        var doubleFlag = await client.GetDoubleDetailsAsync("pricing.discount", 0.1, context);
+        logger.LogInformation("Double flag 'pricing.discount': {Value} (variant: {Variant}, reason: {Reason})", 
+            doubleFlag.Value, doubleFlag.Variant, doubleFlag.Reason);
 
-    // Example with nested flag access
-    var nestedFlag = await client.GetBooleanDetailsAsync("config.features.darkMode", false, context);
-    logger.LogInformation("Nested flag 'config.features.darkMode': {Value} (variant: {Variant}, reason: {Reason})", 
-        nestedFlag.Value, nestedFlag.Variant, nestedFlag.Reason);
-*/
+        // Example with nested flag access
+        var nestedFlag = await client.GetBooleanDetailsAsync("config.features.darkMode", false, context);
+        logger.LogInformation("Nested flag 'config.features.darkMode': {Value} (variant: {Variant}, reason: {Reason})", 
+            nestedFlag.Value, nestedFlag.Variant, nestedFlag.Reason);
+    */
     // Clean up
-    localProvider.Dispose();
+    ((IDisposable)localProvider).Dispose();
     logger.LogInformation("Local provider disposed successfully");
 }
 catch (Exception ex)

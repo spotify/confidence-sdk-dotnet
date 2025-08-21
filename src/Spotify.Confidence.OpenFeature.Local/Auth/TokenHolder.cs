@@ -68,8 +68,7 @@ public class TokenHolder : IDisposable
     {
         try
         {
-            _logger.LogDebug("Acquiring new JWT token for client ID: {ClientId}", _clientId);
-            Console.WriteLine($"[TokenHolder] Acquiring new JWT token for client ID: {_clientId}");
+            TokenHolderLogger.AcquiringNewToken(_logger, _clientId);
 
             var request = new RequestAccessTokenRequest
             {
@@ -78,19 +77,15 @@ public class TokenHolder : IDisposable
                 ClientSecret = _clientSecret
             };
 
-            Console.WriteLine($"[TokenHolder] Making gRPC call to RequestAccessToken...");
             var response = await _authClient.RequestAccessTokenAsync(request, deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: cancellationToken);
-            Console.WriteLine($"[TokenHolder] Received token response, decoding JWT...");
             
             // Decode the JWT to extract claims like the Java implementation
             var jwtHandler = new JwtSecurityTokenHandler();
             var decodedJwt = jwtHandler.ReadJwtToken(response.AccessToken_);
-            Console.WriteLine($"[TokenHolder] JWT decoded successfully, expires at: {decodedJwt.ValidTo}");
             
             // Extract account name from claims (similar to ACCOUNT_NAME_CLAIM in Java)
             var accountNameClaim = decodedJwt.Claims.FirstOrDefault(c => c.Type == "account_name" || c.Type == "sub");
             var accountName = accountNameClaim?.Value ?? "unknown";
-            Console.WriteLine($"[TokenHolder] Extracted account name: {accountName}");
             
             // Use the actual JWT expiration time
             var expiration = decodedJwt.ValidTo;
@@ -102,20 +97,12 @@ public class TokenHolder : IDisposable
                 _currentToken = token;
             }
 
-            _logger.LogDebug("Successfully acquired JWT token for account '{AccountName}' (expires at {ExpirationTime})", 
-                accountName, expiration);
-            Console.WriteLine($"[TokenHolder] Token cached successfully");
+            TokenHolderLogger.SuccessfullyAcquiredToken(_logger, accountName, expiration);
             return token;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to acquire JWT token for client ID: {ClientId}", _clientId);
-            Console.WriteLine($"[TokenHolder] ERROR acquiring token: {ex.Message}");
-            Console.WriteLine($"[TokenHolder] Exception type: {ex.GetType().Name}");
-            if (ex.InnerException != null)
-            {
-                Console.WriteLine($"[TokenHolder] Inner exception: {ex.InnerException.Message}");
-            }
+            TokenHolderLogger.FailedToAcquireToken(_logger, _clientId, ex);
             throw;
         }
     }
@@ -186,4 +173,18 @@ public class TokenHolder : IDisposable
         Dispose(true);
         GC.SuppressFinalize(this);
     }
+}
+
+#pragma warning disable SA1601 // Partial elements should be documented
+internal static partial class TokenHolderLogger
+#pragma warning restore SA1601 // Partial elements should be documented
+{
+    [LoggerMessage(6000, LogLevel.Information, "Successfully acquired token for account: {AccountName}, expires at: {Expiration}")]
+    public static partial void SuccessfullyAcquiredToken(ILogger logger, string accountName, DateTime expiration);
+
+    [LoggerMessage(6001, LogLevel.Error, "Failed to acquire JWT token for client ID: {ClientId}")]
+    public static partial void FailedToAcquireToken(ILogger logger, string clientId, Exception exception);
+
+    [LoggerMessage(6002, LogLevel.Debug, "Acquiring new JWT token for client ID: {ClientId}")]
+    public static partial void AcquiringNewToken(ILogger logger, string clientId);
 }

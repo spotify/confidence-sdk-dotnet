@@ -38,41 +38,16 @@ public class ConfidenceStateService : IDisposable
         _clientSecret = clientSecret ?? throw new ArgumentNullException(nameof(clientSecret));
         _logger = logger ?? NullLogger<ConfidenceStateService>.Instance;
 
-        _logger.LogInformation("Initializing ConfidenceStateService for client ID: {ClientId}", _clientId);
-
         try
         {
-                    // Step 1: Create separate channels for auth and resolver services
-        _logger.LogDebug("Step 1: Creating gRPC channels for auth and resolver services");
-        var authChannel = CreateChannel();
-        var resolverChannel = CreateChannel();
-        _logger.LogDebug("Successfully created gRPC channels");
-
-        // Step 2: Create auth service client using the auth channel
-        _logger.LogDebug("Step 2: Creating AuthService client");
-        var authClient = new AuthService.AuthServiceClient(authChannel);
-        _logger.LogDebug("Successfully created AuthService client");
-
-            // Step 3: Create token holder for JWT management
-            _logger.LogDebug("Step 3: Creating TokenHolder for JWT management");
+            var authChannel = CreateChannel();
+            var resolverChannel = CreateChannel();
+            var authClient = new AuthService.AuthServiceClient(authChannel);
             _tokenHolder = new TokenHolder(_clientId, _clientSecret, authClient);
-            _logger.LogDebug("Successfully created TokenHolder");
-
-            // Step 4: Create JWT interceptor and authenticated client for resolver service
-            _logger.LogDebug("Step 4: Creating JWT interceptor and authenticated call invoker for resolver service");
             var jwtInterceptor = new JwtAuthClientInterceptor(_tokenHolder);
             var callInvoker = resolverChannel.Intercept(jwtInterceptor);
-            _logger.LogDebug("Successfully created authenticated call invoker");
-
-            // Step 5: Create resolver state service client using authenticated call invoker
-            _logger.LogDebug("Step 5: Creating ResolverStateService client");
             _grpcClient = new ResolverStateService.ResolverStateServiceClient(callInvoker);
-            _logger.LogDebug("Successfully created ResolverStateService client");
-            
-            // Keep reference to resolver channel for disposal (auth channel will be disposed with TokenHolder)
             _grpcChannel = resolverChannel;
-            
-            _logger.LogInformation("ConfidenceStateService initialization completed successfully");
         }
         catch (Exception ex)
         {
@@ -108,73 +83,42 @@ public class ConfidenceStateService : IDisposable
         try
         {
             ConfidenceStateServiceLogger.FetchingResolverStateViaGrpc(_logger, null);
-            Console.WriteLine($"[ConfidenceStateService] Starting resolver state fetch process");
 
-            // Create the gRPC request for full resolver state
-            Console.WriteLine($"[ConfidenceStateService] Creating ResolverStateRequest");
             var request = new ResolverStateRequest();
-            Console.WriteLine($"[ConfidenceStateService] Created ResolverStateRequest successfully");
-
-            // Make the gRPC streaming call to get the full resolver state
-            Console.WriteLine($"[ConfidenceStateService] Making gRPC streaming call to FullResolverState endpoint");
             using var streamingCall = _grpcClient.FullResolverState(request, deadline: DateTime.UtcNow.AddSeconds(30), cancellationToken: cancellationToken);
-            Console.WriteLine($"[ConfidenceStateService] Created streaming call successfully, waiting for response...");
             
-            // Read the streaming response - should contain a single ResolverState message
-            Console.WriteLine($"[ConfidenceStateService] Reading streaming response from FullResolverState");
             ResolverState? resolverState = null;
             var messageCount = 0;
             while (await streamingCall.ResponseStream.MoveNext(cancellationToken))
             {
                 messageCount++;
-                Console.WriteLine($"[ConfidenceStateService] Received ResolverState message #{messageCount} from stream");
                 resolverState = streamingCall.ResponseStream.Current;
-                Console.WriteLine($"[ConfidenceStateService] Message contains {resolverState?.Flags.Count ?? 0} flags");
-                break; // Take the first (and should be only) message
+                break;
             }
 
             if (resolverState == null)
             {
-                Console.WriteLine($"[ConfidenceStateService] ERROR: No ResolverState received from streaming gRPC call after {messageCount} attempts");
                 ConfidenceStateServiceLogger.NoResolverStateReceived(_logger, null);
                 return null;
             }
             
-            Console.WriteLine($"[ConfidenceStateService] Successfully received ResolverState with {resolverState.Flags.Count} flags, converting to byte array");
-            
-            // Convert the ResolverState to bytes
             var stateBytes = resolverState.ToByteArray();
-            Console.WriteLine($"[ConfidenceStateService] Successfully converted ResolverState to {stateBytes.Length} bytes");
-            
-            // Log some details about the state
-            if (resolverState.Flags.Count > 0)
-            {
-                Console.WriteLine($"[ConfidenceStateService] State contains flags: {string.Join(", ", resolverState.Flags.Take(3).Select(f => f.Name))}");
-                if (resolverState.Flags.Count > 3)
-                {
-                    Console.WriteLine($"[ConfidenceStateService] ... and {resolverState.Flags.Count - 3} more flags");
-                }
-            }
-            
+
             ConfidenceStateServiceLogger.SuccessfullyFetchedResolverStateViaGrpc(_logger, null);
             return stateBytes;
         }
         catch (Grpc.Core.RpcException ex)
         {
-            _logger.LogError("gRPC error occurred: Status={StatusCode}, Detail='{Detail}', Message='{Message}'", 
-                ex.StatusCode, ex.Status.Detail, ex.Message);
             ConfidenceStateServiceLogger.GrpcErrorOccurred(_logger, ex.StatusCode, ex);
             return null;
         }
         catch (TaskCanceledException ex)
         {
-            _logger.LogInformation("Request was cancelled while fetching resolver state");
             ConfidenceStateServiceLogger.RequestCanceled(_logger, ex);
             return null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error occurred while fetching resolver state: {ErrorType}", ex.GetType().Name);
             ConfidenceStateServiceLogger.UnexpectedErrorOccurred(_logger, ex);
             return null;
         }
@@ -194,9 +138,7 @@ public class ConfidenceStateService : IDisposable
 
         try
         {
-            // Try to parse the bytes as a ResolverState protobuf
             ResolverState.Parser.ParseFrom(stateBytes);
-            
             ConfidenceStateServiceLogger.ResolverStateValidationPassed(_logger, null);
             return true;
         }

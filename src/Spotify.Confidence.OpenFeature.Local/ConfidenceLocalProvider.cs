@@ -89,61 +89,42 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     {
         if (_initialized)
         {
-            _logger.LogDebug("Provider already initialized, skipping");
             return;
         }
+        ObjectDisposedException.ThrowIf(_disposed, new ObjectDisposedException(nameof(ConfidenceLocalProvider)));
 
-        if (_disposed)
-        {
-            throw new ObjectDisposedException(nameof(ConfidenceLocalProvider));
-        }
+        ConfidenceLocalProviderLogger.InitializingProvider(_logger, context, null);
 
-        _logger.LogInformation("Initializing ConfidenceLocalProvider - fetching resolver state");
-        Console.WriteLine("[ConfidenceLocalProvider] Starting initialization process");
-
-        // Step 1: Fetch the resolver state from the backend
-        Console.WriteLine("[ConfidenceLocalProvider] Step 1: Fetching resolver state");
         var stateBytes = await _stateService.FetchResolverStateAsync(cancellationToken);
         
         if (stateBytes == null || stateBytes.Length == 0)
         {
-            Console.WriteLine("[ConfidenceLocalProvider] ERROR: Failed to fetch resolver state");
-            _logger.LogError("Failed to fetch resolver state - throwing exception");
+            ConfidenceLocalProviderLogger.ErrorFetchingResolverState(_logger, null);
             throw new InvalidOperationException("Failed to fetch resolver state from backend");
         }
 
-        Console.WriteLine($"[ConfidenceLocalProvider] Step 2: Validating {stateBytes.Length} bytes of state");
         if (!_stateService.ValidateState(stateBytes))
         {
-            Console.WriteLine("[ConfidenceLocalProvider] ERROR: State validation failed");
-            _logger.LogError("Fetched resolver state is invalid - throwing exception");
+            ConfidenceLocalProviderLogger.ErrorValidatingResolverState(_logger, null);
             throw new InvalidOperationException("Fetched resolver state is invalid");
         }
 
-        Console.WriteLine("[ConfidenceLocalProvider] Step 3: Setting state in WASM resolver");
         if (_wasmResolver == null)
         {
-            Console.WriteLine("[ConfidenceLocalProvider] ERROR: WASM resolver not available");
-            _logger.LogError("WASM resolver not available - throwing exception");
+            ConfidenceLocalProviderLogger.ErrorWasmResolverNotAvailable(_logger, null);
             throw new InvalidOperationException("WASM resolver not available - check if rust_guest.wasm resource is properly embedded");
         }
 
-        Console.WriteLine($"[ConfidenceLocalProvider] Setting resolver state with {stateBytes.Length} bytes");
         var stateSetSuccessfully = _wasmResolver.SetResolverState(stateBytes);
         
         if (!stateSetSuccessfully)
         {
-            Console.WriteLine("[ConfidenceLocalProvider] ERROR: Failed to set state in WASM module");
-            _logger.LogError("Failed to set resolver state in WASM module - throwing exception");
+            ConfidenceLocalProviderLogger.ErrorSettingResolverState(_logger, null);
             throw new InvalidOperationException("Failed to set resolver state in WASM module");
         }
 
-        // Step 4: All steps successful - mark as initialized
-        Console.WriteLine("[ConfidenceLocalProvider] SUCCESS: All initialization steps completed successfully");
+        ConfidenceLocalProviderLogger.InitializationCompleted(_logger, null);
         _initialized = true;
-        
-        _logger.LogInformation("ConfidenceLocalProvider initialization completed successfully");
-        Console.WriteLine("[ConfidenceLocalProvider] Provider is now READY");
     }
 
     public override async Task<ResolutionDetails<bool>> ResolveBooleanValueAsync(
@@ -160,7 +141,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
             
             // Resolve the base flag (without dot notation)
-            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            var result = ResolveValue(baseFlagName, context);
             
             if (!result.Success)
             {
@@ -234,7 +215,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
             
             // Resolve the base flag (without dot notation)
-            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            var result = ResolveValue(baseFlagName, context);
             
             if (!result.Success)
             {
@@ -312,7 +293,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
             
             // Resolve the base flag (without dot notation)
-            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            var result = ResolveValue(baseFlagName, context);
             
             if (!result.Success)
             {
@@ -394,7 +375,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
             
             // Resolve the base flag (without dot notation)
-            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            var result = ResolveValue(baseFlagName, context);
             
             if (!result.Success)
             {
@@ -480,7 +461,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             var (baseFlagName, propertyPath) = DotNotationHelper.ParseDotNotation(flagKey);
             
             // Resolve the base flag (without dot notation)
-            var result = await ResolveValueAsync(baseFlagName, context, cancellationToken);
+            var result = ResolveValue(baseFlagName, context);
             
             if (!result.Success)
             {
@@ -557,7 +538,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     /// <summary>
     /// Core method to resolve a flag value using the WASM resolver.
     /// </summary>
-    private async Task<ResolveResponse> ResolveValueAsync(string flagKey, EvaluationContext? context, CancellationToken cancellationToken)
+    private ResolveResponse ResolveValue(string flagKey, EvaluationContext? context)
     {
         if (_disposed)
         {
@@ -582,15 +563,14 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         var request = new ResolveFlagsRequest
         {
             ClientSecret = _resolverClientSecret,
-            Apply = true,
+            Apply = false, // TODO: this should be true
+            Flags = {
+                GetFullFlagKey(flagKey)
+            },
+            EvaluationContext = ConvertDictionaryToStruct(ConvertEvaluationContext(context))
         };
-        
-        request.Flags.Add(GetFullFlagKey(flagKey));
-        
-        var contextDict = ConvertEvaluationContext(context);
-        request.EvaluationContext = ConvertDictionaryToStruct(contextDict);
 
-        var response = await _wasmResolver.ResolveAsync(request, cancellationToken);
+        var response = _wasmResolver.Resolve(request);
         
         if (response.ResolvedFlags.Count > 0)
         {
@@ -598,7 +578,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             return new ResolveResponse
             {
                 Success = true,
-                Value = ConfidenceLocalProvider.ToDictionary(resolvedFlag.Value),
+                Value = ToDictionary(resolvedFlag.Value),
                 Variant = resolvedFlag.Variant,
                 Reason = resolvedFlag.Reason.ToString()
             };

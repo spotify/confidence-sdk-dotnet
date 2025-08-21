@@ -8,7 +8,7 @@ namespace Spotify.Confidence.OpenFeature.Local.Logging;
 /// </summary>
 internal static partial class WasmResolverLogger
 {
-    [LoggerMessage(5000, LogLevel.Information, "WASM module needs imports, creating basic imports: {Error}")]
+    [LoggerMessage(5000, LogLevel.Warning, "WASM module needs imports, creating basic imports: {Error}")]
     public static partial void ImportsNeeded(ILogger logger, string error);
 
     [LoggerMessage(5001, LogLevel.Information, "WASM module instantiated successfully with {ImportCount} imports")]
@@ -49,4 +49,7 @@ internal static partial class WasmResolverLogger
 
     [LoggerMessage(5013, LogLevel.Warning, "Error disposing WASM resolver resources")]
     public static partial void DisposalError(ILogger logger, Exception exception);
+
+    [LoggerMessage(5014, LogLevel.Information, "Successfully set resolver state ({Length} bytes)")]
+    public static partial void SetResolverStateSuccess(ILogger logger, int length);
 }

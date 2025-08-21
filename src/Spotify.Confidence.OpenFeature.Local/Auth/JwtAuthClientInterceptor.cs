@@ -71,12 +71,8 @@ public class JwtAuthClientInterceptor : Interceptor
     {
         try
         {
-            Console.WriteLine($"[JwtAuthClientInterceptor] Getting JWT token for method: {context.Method.Name}");
-            // Get the JWT token (this may involve an async call, but we need to handle it synchronously here)
             var token = _tokenHolder.GetToken();
-            Console.WriteLine($"[JwtAuthClientInterceptor] Got JWT token for account: {token.AccountName}");
             
-            // Create new headers with the authorization header
             var headers = new Metadata();
             if (context.Options.Headers != null)
             {
@@ -87,11 +83,7 @@ public class JwtAuthClientInterceptor : Interceptor
             }
             
             headers.Add("Authorization", $"Bearer {token.AccessToken}");
-            Console.WriteLine($"[JwtAuthClientInterceptor] Added Authorization header");
             
-            _logger.LogTrace("Added JWT authorization header to gRPC request");
-            
-            // Create new call options with the updated headers
             var newOptions = context.Options.WithHeaders(headers);
             
             return new ClientInterceptorContext<TRequest, TResponse>(
@@ -101,9 +93,7 @@ public class JwtAuthClientInterceptor : Interceptor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to add JWT authentication header to gRPC request");
-            Console.WriteLine($"[JwtAuthClientInterceptor] ERROR: {ex.Message}");
-            Console.WriteLine($"[JwtAuthClientInterceptor] Exception type: {ex.GetType().Name}");
+            _logger.LogError(ex, "Error adding JWT authentication header.");
             throw;
         }
     }
