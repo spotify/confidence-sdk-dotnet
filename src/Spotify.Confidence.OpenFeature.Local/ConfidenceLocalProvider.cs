@@ -28,6 +28,8 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     private readonly ILogger<ConfidenceLocalProvider> _logger;
     private readonly string _resolverClientSecret;
     private readonly WasmResolver? _wasmResolver;
+    private readonly IAssignmentLogger _assignmentLogger;
+    private readonly IResolveLogger _resolveLogger;
     private readonly ConfidenceStateService _stateService;
     private const string ProviderName = "ConfidenceLocal";
     private const string DefaultWasmResourceName = "Resources.rust_guest.wasm";
@@ -48,6 +50,8 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         _resolverClientSecret = resolverClientSecret ?? clientSecret;
         _logger = logger ?? NullLogger<ConfidenceLocalProvider>.Instance;
         _stateService = new ConfidenceStateService(clientId, clientSecret);
+        _assignmentLogger = new AssignmentLoggerService(clientId, clientSecret);
+        _resolveLogger = new ResolveLoggerService(clientId, clientSecret);
 
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -58,7 +62,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
 
         try
         {
-            _wasmResolver = new WasmResolver(DefaultWasmResourceName, assembly: null, logger: loggerFactory.CreateLogger<WasmResolver>());
+            _wasmResolver = new WasmResolver(DefaultWasmResourceName, _assignmentLogger, _resolveLogger, assembly: null, logger: loggerFactory.CreateLogger<WasmResolver>());
         }
         catch (Exception ex)
         {
@@ -81,7 +85,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     /// <param name="context">Initialization context (optional)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Task representing the initialization operation</returns>
-    public override async Task InitializeAsync(EvaluationContext? context = null, CancellationToken cancellationToken = default)
+    public override async Task InitializeAsync(EvaluationContext? context, CancellationToken cancellationToken = default)
     {
         if (_initialized)
         {

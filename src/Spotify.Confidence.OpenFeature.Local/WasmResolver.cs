@@ -5,7 +5,9 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using RustGuest;
 using Spotify.Confidence.OpenFeature.Local.Logging;
+using Spotify.Confidence.OpenFeature.Local.Services;
 using Wasmtime;
 
 namespace Spotify.Confidence.OpenFeature.Local;
@@ -25,16 +27,27 @@ public class WasmResolver : IDisposable
     private readonly Function? _allocFunction;
     private readonly Function? _deallocFunction;
     private readonly Function? _setResolverStateFunction;
+    private readonly IAssignmentLogger _assignmentLogger;
+    private readonly IResolveLogger _resolveLogger;
     private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WasmResolver"/> class from an embedded resource.
     /// </summary>
     /// <param name="resourceName">Name of the embedded resource containing the WASM file.</param>
+    /// <param name="assignmentLogger">Assignment logger instance.</param>
+    /// <param name="resolveLogger">Resolve logger instance.</param>
     /// <param name="assembly">Assembly containing the embedded resource. If null, uses the calling assembly.</param>
     /// <param name="logger">Optional logger instance.</param>
-    public WasmResolver(string resourceName, Assembly? assembly = null, ILogger<WasmResolver>? logger = null)
+    public WasmResolver(
+        string resourceName,
+        IAssignmentLogger assignmentLogger,
+        IResolveLogger resolveLogger,
+        Assembly? assembly = null, 
+        ILogger<WasmResolver>? logger = null)
     {
+        _assignmentLogger = assignmentLogger;
+        _resolveLogger = resolveLogger;
         _logger = logger ?? NullLogger<WasmResolver>.Instance;
         assembly ??= Assembly.GetExecutingAssembly();
 
@@ -56,11 +69,13 @@ public class WasmResolver : IDisposable
                         WasmResolverLogger.WasmImportCalledWithThreadId(_logger, "wasm_msg_current_thread_id", threadId);
                         return threadId;
                     }),
-                    /*
+
                     // Import log_resolve - (param i32) (result i32)
                     Function.FromCallback(_store, (int ptr) => 
                     {
                         WasmResolverLogger.WasmImportCalled(_logger, "log_resolve", ptr);
+                        var logResolveRequest = ConsumeRequest(ptr, bytes => LogResolveRequest.Parser.ParseFrom(bytes));
+                        _resolveLogger.Log(logResolveRequest);
                         return 0; // Return success
                     }),
                     
@@ -68,20 +83,20 @@ public class WasmResolver : IDisposable
                     Function.FromCallback(_store, (int ptr) => 
                     {
                         WasmResolverLogger.WasmImportCalled(_logger, "log_assign", ptr);
+                        var logAssignRequest = ConsumeRequest(ptr, bytes => LogAssignRequest.Parser.ParseFrom(bytes));
+                        _assignmentLogger.Log(logAssignRequest);
                         return 0;
                     }),
-                    */
 
                     // Import wasm_msg_host_current_time - (param i32) (result proto Timestamp)
                     Function.FromCallback(_store, (int ptr) => 
                     {
-                        Timestamp timestamp = new Timestamp();
-                        timestamp.Seconds = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                        Timestamp timestamp = Timestamp.FromDateTime(DateTime.UtcNow);
                         WasmResolverLogger.WasmImportCalledWithTimestamp(_logger, "wasm_msg_host_current_time", ptr, timestamp.Seconds);
                         return TransferRequest(CreateWasmRequest(timestamp.ToByteArray()));
                     })
                 };
-                
+              
                 _instance = new Instance(_store, _module, imports);
                 WasmResolverLogger.ModuleInstantiated(_logger, imports.Length);
             }
@@ -376,6 +391,18 @@ public class WasmResolver : IDisposable
     }
 
     /// <summary>
+    /// Parses a request from WASM memory at the specified address.
+    /// </summary>
+    /// <param name="addr">Memory address returned by WASM function.</param>
+    /// <param name="parser">Function to parse the request data bytes into the desired type.</param>
+    /// <typeparam name="T">The type to parse the request into.</typeparam>
+    private T ConsumeRequest<T>(int addr, Func<byte[], T> parser)
+    {
+        var request = Request.Parser.ParseFrom(ConsumeBytes(addr));
+        return parser(request.Data.ToByteArray());
+    }
+
+    /// <summary>
     /// Disposes the WASM resolver and releases all resources.
     /// </summary>
     public void Dispose()
@@ -412,3 +439,4 @@ public class WasmResolver : IDisposable
         _disposed = true;
     }
 }
+

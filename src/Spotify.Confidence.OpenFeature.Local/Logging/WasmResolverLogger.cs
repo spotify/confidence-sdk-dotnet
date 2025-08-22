@@ -32,13 +32,13 @@ internal static partial class WasmResolverLogger
     [LoggerMessage(5007, LogLevel.Error, "Failed to initialize WASM resolver from {Source}")]
     public static partial void WasmResolverInitializationFailed(ILogger logger, string source, Exception exception);
 
-    [LoggerMessage(5008, LogLevel.Debug, "WASM called {FunctionName} with ptr={Ptr}")]
+    [LoggerMessage(5008, LogLevel.Trace, "WASM called {FunctionName} with ptr={Ptr}")]
     public static partial void WasmImportCalled(ILogger logger, string functionName, int ptr);
 
-    [LoggerMessage(5009, LogLevel.Debug, "WASM called {FunctionName} with ptr={Ptr}, returning timestamp={Timestamp}")]
+    [LoggerMessage(5009, LogLevel.Trace, "WASM called {FunctionName} with ptr={Ptr}, returning timestamp={Timestamp}")]
     public static partial void WasmImportCalledWithTimestamp(ILogger logger, string functionName, int ptr, long timestamp);
 
-    [LoggerMessage(5010, LogLevel.Debug, "WASM called {FunctionName}, returning threadId={ThreadId}")]
+    [LoggerMessage(5010, LogLevel.Trace, "WASM called {FunctionName}, returning threadId={ThreadId}")]
     public static partial void WasmImportCalledWithThreadId(ILogger logger, string functionName, int threadId);
 
     [LoggerMessage(5011, LogLevel.Error, "Error resolving flag {FlagKey} using WASM module")]
