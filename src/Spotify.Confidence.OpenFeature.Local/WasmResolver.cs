@@ -71,6 +71,7 @@ public class WasmResolver : IDisposable
                         return 0;
                     }),
                     */
+
                     // Import wasm_msg_host_current_time - (param i32) (result proto Timestamp)
                     Function.FromCallback(_store, (int ptr) => 
                     {
@@ -108,7 +109,7 @@ public class WasmResolver : IDisposable
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException("Failed to get wasm_msg_alloc function, _allocFunction is null");
+                throw new InvalidOperationException("Failed to get wasm_msg_alloc function, _allocFunction is null", ex);
             }
             
             try
@@ -379,17 +380,33 @@ public class WasmResolver : IDisposable
     /// </summary>
     public void Dispose()
     {
-        ObjectDisposedException.ThrowIf(_disposed, new ObjectDisposedException(nameof(WasmResolver)));
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 
-        try
+    /// <summary>
+    /// Protected implementation of dispose pattern.
+    /// </summary>
+    /// <param name="disposing">True if disposing managed resources.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed)
         {
-            _store?.Dispose();
-            _module?.Dispose();
-            _engine?.Dispose();
+            return;
         }
-        catch (Exception ex)
+
+        if (disposing)
         {
-            WasmResolverLogger.DisposalError(_logger, ex);
+            try
+            {
+                _store?.Dispose();
+                _module?.Dispose();
+                _engine?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                WasmResolverLogger.DisposalError(_logger, ex);
+            }
         }
 
         _disposed = true;

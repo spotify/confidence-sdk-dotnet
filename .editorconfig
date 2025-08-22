@@ -325,3 +325,9 @@ dotnet_diagnostic.SA1101.severity = none    # Prefix local calls with this
 
 # Disable trailing comma requirements
 dotnet_diagnostic.SA1413.severity = none    # Use trailing comma in multi-line initializers
+
+# SA1011 conflicts with SA1018 for nullable types - suppress SA1011 to avoid conflicts
+# SA1018 takes precedence: nullable type symbols should not be preceded by space
+# Reference: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/issues/2139
+dotnet_diagnostic.SA1011.severity = none    # Closing square bracket should be followed by a space
+dotnet_diagnostic.SA1010.severity = none    # Opening square brackets should not be preceded by a space

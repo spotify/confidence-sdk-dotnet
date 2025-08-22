@@ -9,11 +9,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Polly;
 using Polly.Extensions.Http;
+using Spotify.Confidence.Common.Utils;
 using Spotify.Confidence.Sdk.Exceptions;
 using Spotify.Confidence.Sdk.Logging;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
-using Spotify.Confidence.Common.Utils;
 
 namespace Spotify.Confidence.Sdk;
 

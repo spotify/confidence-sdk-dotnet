@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Confidence.Flags.Resolver.V1;
@@ -10,10 +11,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using OpenFeature;
 using OpenFeature.Constant;
 using OpenFeature.Model;
+using Spotify.Confidence.Common.Utils;
 using Spotify.Confidence.OpenFeature.Local.Logging;
 using Spotify.Confidence.OpenFeature.Local.Models;
 using Spotify.Confidence.OpenFeature.Local.Services;
-using Spotify.Confidence.Common.Utils;
 using ProtobufValue = Google.Protobuf.WellKnownTypes.Value;
 
 namespace Spotify.Confidence.OpenFeature.Local;
@@ -23,10 +24,8 @@ namespace Spotify.Confidence.OpenFeature.Local;
 /// </summary>
 public class ConfidenceLocalProvider : FeatureProvider, IDisposable
 {
-    public const string Version = "0.1.0"; // TODO: Get this from the csproj
+    public static readonly string Version = GetVersion();
     private readonly ILogger<ConfidenceLocalProvider> _logger;
-    private readonly string _clientId;
-    private readonly string _clientSecret;
     private readonly string _resolverClientSecret;
     private readonly WasmResolver? _wasmResolver;
     private readonly ConfidenceStateService _stateService;
@@ -44,21 +43,18 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     /// <param name="logger">Optional logger instance. If not provided, a null logger will be used.</param>
     public ConfidenceLocalProvider(string clientId, string clientSecret, string? resolverClientSecret = null, ILogger<ConfidenceLocalProvider>? logger = null)
     {
-        _clientId = clientId ?? throw new ArgumentNullException(nameof(clientId));
-        _clientSecret = clientSecret ?? throw new ArgumentNullException(nameof(clientSecret));
+        ArgumentNullException.ThrowIfNull(clientId);
+        ArgumentNullException.ThrowIfNull(clientSecret);
         _resolverClientSecret = resolverClientSecret ?? clientSecret;
         _logger = logger ?? NullLogger<ConfidenceLocalProvider>.Instance;
-        
-        
-        // Initialize the state service for network operations  
-        _stateService = new ConfidenceStateService(_clientId, _clientSecret);
-        // Setup logging
-    using var loggerFactory = LoggerFactory.Create(builder =>
-{
-    builder
-        .SetMinimumLevel(LogLevel.Debug)
-        .AddConsole();
-});
+        _stateService = new ConfidenceStateService(clientId, clientSecret);
+
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder
+                .SetMinimumLevel(LogLevel.Debug)
+                .AddConsole();
+        });
 
         try
         {
@@ -127,7 +123,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         _initialized = true;
     }
 
-    public override async Task<ResolutionDetails<bool>> ResolveBooleanValueAsync(
+    public override Task<ResolutionDetails<bool>> ResolveBooleanValueAsync(
         string flagKey,
         bool defaultValue,
         EvaluationContext? context = null,
@@ -146,11 +142,11 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             if (!result.Success)
             {
                 ConfidenceLocalProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, null);
-                return new ResolutionDetails<bool>(
+                return Task.FromResult(new ResolutionDetails<bool>(
                     flagKey,
                     defaultValue,
                     ErrorType.General,
-                    reason: result.Error ?? "DEFAULT");
+                    reason: result.Error ?? "DEFAULT"));
             }
 
             // Extract value using DotNotationHelper (similar to SDK pattern)
@@ -170,23 +166,24 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
                     if (propertyPath.Length > 0)
                     {
                         ConfidenceLocalProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, null);
-                        return new ResolutionDetails<bool>(
+                        return Task.FromResult(new ResolutionDetails<bool>(
                             flagKey,
                             defaultValue,
                             ErrorType.General,
-                            reason: $"Property path '{string.Join(".", propertyPath)}' not found or invalid type");
+                            reason: $"Property path '{string.Join(".", propertyPath)}' not found or invalid type"));
                     }
+
                     // Fallback for regular flag resolution
                     typedValue = defaultValue;
                 }
 
                 ConfidenceLocalProviderLogger.ResolvedBooleanFlag(_logger, flagKey, typedValue, null);
-                return new ResolutionDetails<bool>(
+                return Task.FromResult(new ResolutionDetails<bool>(
                     flagKey,
                     typedValue,
                     ErrorType.None,
                     variant: result.Variant,
-                    reason: result.Reason ?? "RESOLVED");
+                    reason: result.Reason ?? "RESOLVED"));
             }
         }
         catch (Exception ex)
@@ -194,14 +191,14 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             ConfidenceLocalProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, ex);
         }
         
-        return new ResolutionDetails<bool>(
+        return Task.FromResult(new ResolutionDetails<bool>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: "DEFAULT");
+            reason: "DEFAULT"));
     }
 
-    public override async Task<ResolutionDetails<string>> ResolveStringValueAsync(
+    public override Task<ResolutionDetails<string>> ResolveStringValueAsync(
         string flagKey,
         string defaultValue,
         EvaluationContext? context = null,
@@ -220,11 +217,11 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             if (!result.Success)
             {
                 ConfidenceLocalProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, null);
-                return new ResolutionDetails<string>(
+                return Task.FromResult(new ResolutionDetails<string>(
                     flagKey,
                     defaultValue,
                     ErrorType.General,
-                    reason: result.Error ?? "DEFAULT");
+                    reason: result.Error ?? "DEFAULT"));
             }
 
             // Extract value using DotNotationHelper (similar to SDK pattern)
@@ -248,23 +245,24 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
                     if (propertyPath.Length > 0)
                     {
                         ConfidenceLocalProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, null);
-                        return new ResolutionDetails<string>(
+                        return Task.FromResult(new ResolutionDetails<string>(
                             flagKey,
                             defaultValue,
                             ErrorType.General,
-                            reason: $"Property path '{string.Join(".", propertyPath)}' not found");
+                            reason: $"Property path '{string.Join(".", propertyPath)}' not found"));
                     }
+
                     // Fallback for regular flag resolution
                     typedValue = defaultValue;
                 }
 
                 ConfidenceLocalProviderLogger.ResolvedStringFlag(_logger, flagKey, typedValue, null);
-                return new ResolutionDetails<string>(
+                return Task.FromResult(new ResolutionDetails<string>(
                     flagKey,
                     typedValue,
                     ErrorType.None,
                     variant: result.Variant,
-                    reason: result.Reason ?? "RESOLVED");
+                    reason: result.Reason ?? "RESOLVED"));
             }
         }
         catch (Exception ex)
@@ -272,14 +270,14 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             ConfidenceLocalProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, ex);
         }
         
-        return new ResolutionDetails<string>(
+        return Task.FromResult(new ResolutionDetails<string>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: "DEFAULT");
+            reason: "DEFAULT"));
     }
 
-    public override async Task<ResolutionDetails<int>> ResolveIntegerValueAsync(
+    public override Task<ResolutionDetails<int>> ResolveIntegerValueAsync(
         string flagKey,
         int defaultValue,
         EvaluationContext? context = null,
@@ -298,11 +296,11 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             if (!result.Success)
             {
                 ConfidenceLocalProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, null);
-                return new ResolutionDetails<int>(
+                return Task.FromResult(new ResolutionDetails<int>(
                     flagKey,
                     defaultValue,
                     ErrorType.General,
-                    reason: result.Error ?? "DEFAULT");
+                    reason: result.Error ?? "DEFAULT"));
             }
 
             // Extract value using DotNotationHelper (similar to SDK pattern)
@@ -316,7 +314,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
                 {
                     typedValue = directInt;
                 }
-                else if (extractedValue is double doubleValue && doubleValue % 1 == 0)
+                else if (extractedValue is double doubleValue && Math.Abs(doubleValue % 1) < double.Epsilon)
                 {
                     typedValue = (int)doubleValue;
                 }
@@ -330,23 +328,24 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
                     if (propertyPath.Length > 0)
                     {
                         ConfidenceLocalProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, null);
-                        return new ResolutionDetails<int>(
+                        return Task.FromResult(new ResolutionDetails<int>(
                             flagKey,
                             defaultValue,
                             ErrorType.General,
-                            reason: $"Property path '{string.Join(".", propertyPath)}' not found or invalid type");
+                            reason: $"Property path '{string.Join(".", propertyPath)}' not found or invalid type"));
                     }
+
                     // Fallback for regular flag resolution
                     typedValue = defaultValue;
                 }
 
                 ConfidenceLocalProviderLogger.ResolvedIntegerFlag(_logger, flagKey, typedValue, null);
-                return new ResolutionDetails<int>(
+                return Task.FromResult(new ResolutionDetails<int>(
                     flagKey,
                     typedValue,
                     ErrorType.None,
                     variant: result.Variant,
-                    reason: result.Reason ?? "RESOLVED");
+                    reason: result.Reason ?? "RESOLVED"));
             }
         }
         catch (Exception ex)
@@ -354,14 +353,14 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             ConfidenceLocalProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, ex);
         }
         
-        return new ResolutionDetails<int>(
+        return Task.FromResult(new ResolutionDetails<int>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: "DEFAULT");
+            reason: "DEFAULT"));
     }
 
-    public override async Task<ResolutionDetails<double>> ResolveDoubleValueAsync(
+    public override Task<ResolutionDetails<double>> ResolveDoubleValueAsync(
         string flagKey,
         double defaultValue,
         EvaluationContext? context = null,
@@ -380,11 +379,11 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             if (!result.Success)
             {
                 ConfidenceLocalProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, null);
-                return new ResolutionDetails<double>(
+                return Task.FromResult(new ResolutionDetails<double>(
                     flagKey,
                     defaultValue,
                     ErrorType.General,
-                    reason: result.Error ?? "DEFAULT");
+                    reason: result.Error ?? "DEFAULT"));
             }
 
             // Extract value using DotNotationHelper (similar to SDK pattern)
@@ -416,23 +415,24 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
                     if (propertyPath.Length > 0)
                     {
                         ConfidenceLocalProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, null);
-                        return new ResolutionDetails<double>(
+                        return Task.FromResult(new ResolutionDetails<double>(
                             flagKey,
                             defaultValue,
                             ErrorType.General,
-                            reason: $"Property path '{string.Join(".", propertyPath)}' not found or invalid type");
+                            reason: $"Property path '{string.Join(".", propertyPath)}' not found or invalid type"));
                     }
+
                     // Fallback for regular flag resolution
                     typedValue = defaultValue;
                 }
 
                 ConfidenceLocalProviderLogger.ResolvedDoubleFlag(_logger, flagKey, typedValue, null);
-                return new ResolutionDetails<double>(
+                return Task.FromResult(new ResolutionDetails<double>(
                     flagKey,
                     typedValue,
                     ErrorType.None,
                     variant: result.Variant,
-                    reason: result.Reason ?? "RESOLVED");
+                    reason: result.Reason ?? "RESOLVED"));
             }
         }
         catch (Exception ex)
@@ -440,14 +440,14 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             ConfidenceLocalProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, ex);
         }
         
-        return new ResolutionDetails<double>(
+        return Task.FromResult(new ResolutionDetails<double>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: "DEFAULT");
+            reason: "DEFAULT"));
     }
 
-    public override async Task<ResolutionDetails<global::OpenFeature.Model.Value>> ResolveStructureValueAsync(
+    public override Task<ResolutionDetails<global::OpenFeature.Model.Value>> ResolveStructureValueAsync(
         string flagKey,
         global::OpenFeature.Model.Value defaultValue,
         EvaluationContext? context = null,
@@ -466,11 +466,11 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             if (!result.Success)
             {
                 ConfidenceLocalProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, null);
-                return new ResolutionDetails<global::OpenFeature.Model.Value>(
+                return Task.FromResult(new ResolutionDetails<global::OpenFeature.Model.Value>(
                     flagKey,
                     defaultValue,
                     ErrorType.General,
-                    reason: result.Error ?? "DEFAULT");
+                    reason: result.Error ?? "DEFAULT"));
             }
 
             // Extract value using DotNotationHelper (similar to SDK pattern)
@@ -482,22 +482,22 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
                 {
                     var value = ConvertToOpenFeatureValue(extractedValue);
                     ConfidenceLocalProviderLogger.ResolvedStructureFlag(_logger, flagKey, null);
-                    return new ResolutionDetails<global::OpenFeature.Model.Value>(
+                    return Task.FromResult(new ResolutionDetails<global::OpenFeature.Model.Value>(
                         flagKey,
                         value,
                         ErrorType.None,
                         variant: result.Variant,
-                        reason: result.Reason ?? "RESOLVED");
+                        reason: result.Reason ?? "RESOLVED"));
                 }
                 else if (propertyPath.Length > 0)
                 {
                     // Property path specified but not found
                     ConfidenceLocalProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, null);
-                    return new ResolutionDetails<global::OpenFeature.Model.Value>(
+                    return Task.FromResult(new ResolutionDetails<global::OpenFeature.Model.Value>(
                         flagKey,
                         defaultValue,
                         ErrorType.General,
-                        reason: $"Property path '{string.Join(".", propertyPath)}' not found");
+                        reason: $"Property path '{string.Join(".", propertyPath)}' not found"));
                 }
             }
         }
@@ -506,11 +506,11 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             ConfidenceLocalProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, ex);
         }
         
-        return new ResolutionDetails<global::OpenFeature.Model.Value>(
+        return Task.FromResult(new ResolutionDetails<global::OpenFeature.Model.Value>(
             flagKey,
             defaultValue,
             ErrorType.General,
-            reason: "DEFAULT");
+            reason: "DEFAULT"));
     }
 
     public override IImmutableList<Hook> GetProviderHooks()
@@ -524,7 +524,6 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         Dispose();
         return Task.CompletedTask;
     }
-
 
     private static string GetFullFlagKey(string flagKey)
     {
@@ -564,7 +563,8 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         {
             ClientSecret = _resolverClientSecret,
             Apply = false, // TODO: this should be true
-            Flags = {
+            Flags =
+            {
                 GetFullFlagKey(flagKey)
             },
             EvaluationContext = ConvertDictionaryToStruct(ConvertEvaluationContext(context))
@@ -626,6 +626,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         if (value.IsNumber)
         {
             var number = value.AsDouble!.Value;
+
             // Check if it's an integer
             if (Math.Abs(number % 1) < double.Epsilon)
             {
@@ -682,7 +683,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             int i => ProtobufValue.ForNumber(i),
             double d => ProtobufValue.ForNumber(d),
             string s => ProtobufValue.ForString(s),
-            _ => ProtobufValue.ForString(obj.ToString() ?? "")
+            _ => ProtobufValue.ForString(obj.ToString() ?? string.Empty)
         };
     }
 
@@ -693,21 +694,19 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     {
         if (context == null)
         {
-            return new Dictionary<string, object>();
+            return [];
         }
 
         var result = new Dictionary<string, object>();
 
-        // Add targeting key if present
         if (!string.IsNullOrEmpty(context.TargetingKey))
         {
             result["targeting_key"] = context.TargetingKey;
         }
 
-        // Add all other attributes
         foreach (var kvp in context.AsDictionary())
         {
-            if (kvp.Key != "targetingKey") // Avoid duplication
+            if (kvp.Key != "targetingKey")
             {
                 result[kvp.Key] = ConvertValue(kvp.Value);
             }
@@ -749,24 +748,44 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         return new global::OpenFeature.Model.Value(builder.Build());
     }
 
+    private static string GetVersion()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var version = assembly.GetName().Version;
+        return version?.ToString() ?? "unknown";
+    }
+
     /// <summary>
     /// Disposes the provider and releases all resources.
     /// </summary>
     public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Protected implementation of dispose pattern.
+    /// </summary>
+    /// <param name="disposing">True if disposing managed resources.</param>
+    protected virtual void Dispose(bool disposing)
     {
         if (_disposed)
         {
             return;
         }
 
-        try
+        if (disposing)
         {
-            _wasmResolver?.Dispose();
-            _stateService?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            ConfidenceLocalProviderLogger.WasmDisposalError(_logger, ex);
+            try
+            {
+                _wasmResolver?.Dispose();
+                _stateService?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                ConfidenceLocalProviderLogger.WasmDisposalError(_logger, ex);
+            }
         }
 
         _disposed = true;

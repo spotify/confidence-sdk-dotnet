@@ -7,13 +7,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Confidence.Flags.Admin.V1;
 using Confidence.Iam.V1;
-using Grpc.Net.Client;
+using Google.Protobuf;
 using Grpc.Core.Interceptors;
+using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Spotify.Confidence.OpenFeature.Local.Logging;
 using Spotify.Confidence.OpenFeature.Local.Auth;
-using Google.Protobuf;
+using Spotify.Confidence.OpenFeature.Local.Logging;
 
 namespace Spotify.Confidence.OpenFeature.Local.Services;
 
@@ -26,16 +26,15 @@ public class ConfidenceStateService : IDisposable
     private readonly ResolverStateService.ResolverStateServiceClient _grpcClient;
     private readonly TokenHolder _tokenHolder;
     private readonly ILogger<ConfidenceStateService> _logger;
-    private readonly string _clientId;
-    private readonly string _clientSecret;
     private bool _disposed;
 
-
+    private static readonly Action<ILogger, Exception> LogInitializationError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(1001, "InitializationError"), "Failed to initialize ConfidenceStateService");
 
     public ConfidenceStateService(string clientId, string clientSecret, ILogger<ConfidenceStateService>? logger = null)
     {
-        _clientId = clientId ?? throw new ArgumentNullException(nameof(clientId));
-        _clientSecret = clientSecret ?? throw new ArgumentNullException(nameof(clientSecret));
+        ArgumentNullException.ThrowIfNull(clientId);
+        ArgumentNullException.ThrowIfNull(clientSecret);
         _logger = logger ?? NullLogger<ConfidenceStateService>.Instance;
 
         try
@@ -43,7 +42,7 @@ public class ConfidenceStateService : IDisposable
             var authChannel = CreateChannel();
             var resolverChannel = CreateChannel();
             var authClient = new AuthService.AuthServiceClient(authChannel);
-            _tokenHolder = new TokenHolder(_clientId, _clientSecret, authClient);
+            _tokenHolder = new TokenHolder(clientId, clientSecret, authClient);
             var jwtInterceptor = new JwtAuthClientInterceptor(_tokenHolder);
             var callInvoker = resolverChannel.Intercept(jwtInterceptor);
             _grpcClient = new ResolverStateService.ResolverStateServiceClient(callInvoker);
@@ -51,8 +50,8 @@ public class ConfidenceStateService : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to initialize ConfidenceStateService");
-            throw;
+            LogInitializationError(_logger, ex);
+            throw new InvalidOperationException("Failed to initialize ConfidenceStateService", ex);
         }
     }
 
@@ -61,14 +60,7 @@ public class ConfidenceStateService : IDisposable
     /// </summary>
     private static GrpcChannel CreateChannel()
     {
-        var useGrpcPlaintext = Environment.GetEnvironmentVariable("CONFIDENCE_GRPC_PLAINTEXT")
-            ?.Equals("true", StringComparison.OrdinalIgnoreCase) ?? false;
-
-        var address = "https://edge-grpc.spotify.com:443";
-
-        Console.WriteLine($"[ConfidenceStateService] Creating auth gRPC channel to: {address} (plaintext: {useGrpcPlaintext})");
-
-        return GrpcChannel.ForAddress(address);
+        return GrpcChannel.ForAddress("https://edge-grpc.spotify.com:443");
     }
 
     /// <summary>
@@ -88,12 +80,9 @@ public class ConfidenceStateService : IDisposable
             using var streamingCall = _grpcClient.FullResolverState(request, deadline: DateTime.UtcNow.AddSeconds(30), cancellationToken: cancellationToken);
             
             ResolverState? resolverState = null;
-            var messageCount = 0;
-            while (await streamingCall.ResponseStream.MoveNext(cancellationToken))
+            if (await streamingCall.ResponseStream.MoveNext(cancellationToken))
             {
-                messageCount++;
                 resolverState = streamingCall.ResponseStream.Current;
-                break;
             }
 
             if (resolverState == null)
@@ -149,15 +138,15 @@ public class ConfidenceStateService : IDisposable
         }
     }
 
-
-
     /// <summary>
     /// Converts a Protobuf Struct to a .NET object for JSON serialization.
     /// </summary>
-    private static object? ConvertProtobufStructToObject(Google.Protobuf.WellKnownTypes.Struct? pbStruct)
+    private static Dictionary<string, object?>? ConvertProtobufStructToObject(Google.Protobuf.WellKnownTypes.Struct? pbStruct)
     {
         if (pbStruct == null)
+        {
             return null;
+        }
 
         var result = new Dictionary<string, object?>();
         foreach (var field in pbStruct.Fields)
@@ -173,7 +162,9 @@ public class ConfidenceStateService : IDisposable
     private static object? ConvertProtobufValueToObject(Google.Protobuf.WellKnownTypes.Value? pbValue)
     {
         if (pbValue == null)
+        {
             return null;
+        }
 
         return pbValue.KindCase switch
         {

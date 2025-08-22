@@ -15,6 +15,9 @@ public class JwtAuthClientInterceptor : Interceptor
     private readonly TokenHolder _tokenHolder;
     private readonly ILogger<JwtAuthClientInterceptor> _logger;
 
+    private static readonly Action<ILogger, Exception> LogAuthHeaderError =
+        LoggerMessage.Define(LogLevel.Error, new EventId(2001, "AuthHeaderError"), "Error adding JWT authentication header.");
+
     public JwtAuthClientInterceptor(TokenHolder tokenHolder, ILogger<JwtAuthClientInterceptor>? logger = null)
     {
         _tokenHolder = tokenHolder ?? throw new ArgumentNullException(nameof(tokenHolder));
@@ -93,8 +96,8 @@ public class JwtAuthClientInterceptor : Interceptor
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error adding JWT authentication header.");
-            throw;
+            LogAuthHeaderError(_logger, ex);
+            throw new InvalidOperationException("Error adding JWT authentication header", ex);
         }
     }
 }
