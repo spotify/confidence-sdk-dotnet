@@ -331,3 +331,6 @@ dotnet_diagnostic.SA1413.severity = none    # Use trailing comma in multi-line i
 # Reference: https://github.com/DotNetAnalyzers/StyleCopAnalyzers/issues/2139
 dotnet_diagnostic.SA1011.severity = none    # Closing square bracket should be followed by a space
 dotnet_diagnostic.SA1010.severity = none    # Opening square brackets should not be preceded by a space
+
+# Allow TODO comments in development code
+dotnet_diagnostic.S1135.severity = suggestion    # Complete the task associated to this 'TODO' comment

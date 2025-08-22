@@ -58,101 +58,64 @@ public class WasmResolver : IDisposable
             _module = Wasmtime.Module.FromBytes(_engine, resourceName, wasmBytes);
             _store = new Store(_engine);
             
-            try
-            {               
-                var imports = new object[]
+            var imports = new object[]
+            {
+                // Import wasm_msg_current_thread_id - (result i32) - NO parameters  
+                Function.FromCallback(_store, () => 
                 {
-                    // Import wasm_msg_current_thread_id - (result i32) - NO parameters  
-                    Function.FromCallback(_store, () => 
-                    {
-                        var threadId = Environment.CurrentManagedThreadId;
-                        WasmResolverLogger.WasmImportCalledWithThreadId(_logger, "wasm_msg_current_thread_id", threadId);
-                        return threadId;
-                    }),
+                    var threadId = Environment.CurrentManagedThreadId;
+                    WasmResolverLogger.WasmImportCalledWithThreadId(_logger, "wasm_msg_current_thread_id", threadId);
+                    return threadId;
+                }),
 
-                    // Import log_resolve - (param i32) (result i32)
-                    Function.FromCallback(_store, (int ptr) => 
-                    {
-                        WasmResolverLogger.WasmImportCalled(_logger, "log_resolve", ptr);
-                        var logResolveRequest = ConsumeRequest(ptr, bytes => LogResolveRequest.Parser.ParseFrom(bytes));
-                        _resolveLogger.Log(logResolveRequest);
-                        return 0; // Return success
-                    }),
-                    
-                    // Import log_assign - (param i32) (result i32)
-                    Function.FromCallback(_store, (int ptr) => 
-                    {
-                        WasmResolverLogger.WasmImportCalled(_logger, "log_assign", ptr);
-                        var logAssignRequest = ConsumeRequest(ptr, bytes => LogAssignRequest.Parser.ParseFrom(bytes));
-                        _assignmentLogger.Log(logAssignRequest);
-                        return 0;
-                    }),
+                // Import log_resolve - (param i32) (result i32)
+                Function.FromCallback(_store, (int ptr) => 
+                {
+                    WasmResolverLogger.WasmImportCalled(_logger, "log_resolve", ptr);
+                    var logResolveRequest = ConsumeRequest(ptr, bytes => LogResolveRequest.Parser.ParseFrom(bytes));
+                    _resolveLogger.Log(logResolveRequest);
+                    return 0; // Return success
+                }),
+                
+                // Import log_assign - (param i32) (result i32)
+                Function.FromCallback(_store, (int ptr) => 
+                {
+                    WasmResolverLogger.WasmImportCalled(_logger, "log_assign", ptr);
+                    var logAssignRequest = ConsumeRequest(ptr, bytes => LogAssignRequest.Parser.ParseFrom(bytes));
+                    _assignmentLogger.Log(logAssignRequest);
+                    return 0;
+                }),
 
-                    // Import wasm_msg_host_current_time - (param i32) (result proto Timestamp)
-                    Function.FromCallback(_store, (int ptr) => 
-                    {
-                        Timestamp timestamp = Timestamp.FromDateTime(DateTime.UtcNow);
-                        WasmResolverLogger.WasmImportCalledWithTimestamp(_logger, "wasm_msg_host_current_time", ptr, timestamp.Seconds);
-                        return TransferRequest(CreateWasmRequest(timestamp.ToByteArray()));
-                    })
-                };
-              
-                _instance = new Instance(_store, _module, imports);
-                WasmResolverLogger.ModuleInstantiated(_logger, imports.Length);
-            }
-            catch (Exception ex)
-            {
-                WasmResolverLogger.ImportsNeeded(_logger, ex.Message);
-            }
-            if (_instance == null)
-            {
-                throw new InvalidOperationException("Failed to instantiate WASM module, _instance is null");
-            }
+                // Import wasm_msg_host_current_time - (param i32) (result proto Timestamp)
+                Function.FromCallback(_store, (int ptr) => 
+                {
+                    Timestamp timestamp = Timestamp.FromDateTime(DateTime.UtcNow);
+                    WasmResolverLogger.WasmImportCalledWithTimestamp(_logger, "wasm_msg_host_current_time", ptr, timestamp.Seconds);
+                    return TransferRequest(CreateWasmRequest(timestamp.ToByteArray()));
+                })
 
-            try
-            {
-                _resolveFunction = _instance.GetFunction("wasm_msg_guest_resolve");
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Failed to get wasm_msg_guest_resolve function, _resolveFunction is null", ex);
-            }
+                // TODO: Resolve token encryption key
+            };
             
-            try
-            {
-                _allocFunction = _instance.GetFunction("wasm_msg_alloc");
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Failed to get wasm_msg_alloc function, _allocFunction is null", ex);
-            }
-            
-            try
-            {
-                _deallocFunction = _instance.GetFunction("wasm_msg_free");
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Failed to get wasm_msg_free function, _deallocFunction is null", ex);
-            }
-            
-            try
-            {
-                _setResolverStateFunction = _instance.GetFunction("wasm_msg_guest_set_resolver_state");
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Failed to get wasm_msg_guest_set_resolver_state function, _setResolverStateFunction is null", ex);
-            }
-            
-            try
-            {
-                _memory = _instance.GetMemory("memory");
-            }
-            catch (Exception ex)
-            {
-                throw new InvalidOperationException("Failed to get memory, _memory is null", ex);
-            }
+            _instance = new Instance(_store, _module, imports);
+            WasmResolverLogger.ModuleInstantiated(_logger, imports.Length);
+
+            ArgumentNullException.ThrowIfNull(_instance);
+
+            _resolveFunction = _instance.GetFunction("wasm_msg_guest_resolve");
+            ArgumentNullException.ThrowIfNull(_resolveFunction);
+
+            _allocFunction = _instance.GetFunction("wasm_msg_alloc");
+            ArgumentNullException.ThrowIfNull(_allocFunction);
+
+            _deallocFunction = _instance.GetFunction("wasm_msg_free");
+            ArgumentNullException.ThrowIfNull(_deallocFunction);
+
+            _setResolverStateFunction = _instance.GetFunction("wasm_msg_guest_set_resolver_state");
+            ArgumentNullException.ThrowIfNull(_setResolverStateFunction);
+
+            _memory = _instance.GetMemory("memory");
+            ArgumentNullException.ThrowIfNull(_memory);
 
             WasmResolverLogger.WasmResolverInitialized(_logger, $"embedded resource {resourceName}");
         }
@@ -367,10 +330,8 @@ public class WasmResolver : IDisposable
     /// <returns>Parsed response object.</returns>
     private T ConsumeResponse<T>(int addr, Func<byte[], T> parser)
     {
-        try
-        {
             var response = Response.Parser.ParseFrom(ConsumeBytes(addr));
-            
+
             if (response.HasError)
             {
                 throw new InvalidOperationException($"WASM module returned error: {response.Error}");
@@ -383,11 +344,6 @@ public class WasmResolver : IDisposable
             {
                 throw new InvalidOperationException("WASM response contains neither data nor error");
             }
-        }
-        catch (InvalidProtocolBufferException ex)
-        {
-            throw new InvalidOperationException($"Failed to parse WASM response as protobuf: {ex.Message}", ex);
-        }
     }
 
     /// <summary>
@@ -439,4 +395,3 @@ public class WasmResolver : IDisposable
         _disposed = true;
     }
 }
-
