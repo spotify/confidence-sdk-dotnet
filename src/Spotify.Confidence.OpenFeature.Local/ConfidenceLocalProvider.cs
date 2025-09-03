@@ -5,13 +5,17 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Confidence.Flags.Resolver.V1;
+using Confidence.Iam.V1;
 using Google.Protobuf.WellKnownTypes;
+using Grpc.Core.Interceptors;
+using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenFeature;
 using OpenFeature.Constant;
 using OpenFeature.Model;
 using Spotify.Confidence.Common.Utils;
+using Spotify.Confidence.OpenFeature.Local.Auth;
 using Spotify.Confidence.OpenFeature.Local.Logging;
 using Spotify.Confidence.OpenFeature.Local.Models;
 using Spotify.Confidence.OpenFeature.Local.Services;
@@ -30,12 +34,12 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
     private readonly WasmResolver? _wasmResolver;
     private readonly IAssignmentLogger _assignmentLogger;
     private readonly IResolveLogger _resolveLogger;
+    private readonly TokenHolder _tokenHolder;
     private readonly ConfidenceStateService _stateService;
     private const string ProviderName = "ConfidenceLocal";
     private const string DefaultWasmResourceName = "Resources.rust_guest.wasm";
     private bool _disposed;
     private bool _initialized;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfidenceLocalProvider"/> class using the embedded WASM resolver.
     /// </summary>
@@ -49,14 +53,19 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
         ArgumentNullException.ThrowIfNull(clientSecret);
         _resolverClientSecret = resolverClientSecret ?? clientSecret;
         _logger = logger ?? NullLogger<ConfidenceLocalProvider>.Instance;
-        _stateService = new ConfidenceStateService(clientId, clientSecret);
-        _assignmentLogger = new AssignmentLoggerService(clientId, clientSecret);
-        _resolveLogger = new ResolveLoggerService(clientId, clientSecret);
+        var resolverChannel = CreateChannel();
+        var authClient = new AuthService.AuthServiceClient(CreateChannel());
+        _tokenHolder = new TokenHolder(clientId, clientSecret, authClient);
+        var jwtInterceptor = new JwtAuthClientInterceptor(_tokenHolder);
+        var callInvoker = resolverChannel.Intercept(jwtInterceptor);
+        _stateService = new ConfidenceStateService(callInvoker);
+        _assignmentLogger = new AssignmentLoggerService(clientId, clientSecret, callInvoker);
+        _resolveLogger = new ResolveLoggerService(clientId, clientSecret, callInvoker);
 
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder
-                .SetMinimumLevel(LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Trace) // TODO: change to debug
                 .AddConsole();
         });
 
@@ -595,6 +604,14 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             Reason = "ERROR"
         };
     }
+    
+    /// <summary>
+    /// Creates a gRPC channel
+    /// </summary>
+    private static GrpcChannel CreateChannel()
+    {
+        return GrpcChannel.ForAddress("https://edge-grpc.spotify.com:443");
+    }
 
     private static Dictionary<string, object> ToDictionary(Struct value)
     {
@@ -784,7 +801,7 @@ public class ConfidenceLocalProvider : FeatureProvider, IDisposable
             try
             {
                 _wasmResolver?.Dispose();
-                _stateService?.Dispose();
+                _assignmentLogger?.Dispose();
             }
             catch (Exception ex)
             {

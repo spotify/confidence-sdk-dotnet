@@ -102,6 +102,9 @@ try
     logger.LogInformation("Nested flag 'config.features.darkMode': {Value} (variant: {Variant}, reason: {Reason})", 
         nestedFlag.Value, nestedFlag.Variant, nestedFlag.Reason);
 */
+
+    await Task.Delay(10000);
+    logger.LogInformation("## Done ##");
     // Clean up
     localProvider.Dispose();
     logger.LogInformation("Local provider disposed successfully");

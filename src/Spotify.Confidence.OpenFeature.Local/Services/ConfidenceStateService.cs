@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Confidence.Flags.Admin.V1;
 using Confidence.Iam.V1;
 using Google.Protobuf;
+using Grpc.Core;
 using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 using Microsoft.Extensions.Logging;
@@ -20,47 +21,30 @@ namespace Spotify.Confidence.OpenFeature.Local.Services;
 /// <summary>
 /// Service responsible for fetching configuration state from the Confidence backend via gRPC.
 /// </summary>
-public class ConfidenceStateService : IDisposable
+public class ConfidenceStateService
 {
-    private readonly GrpcChannel _grpcChannel;
     private readonly ResolverStateService.ResolverStateServiceClient _grpcClient;
-    private readonly TokenHolder _tokenHolder;
     private readonly ILogger<ConfidenceStateService> _logger;
     private bool _disposed;
 
     private static readonly Action<ILogger, Exception> LogInitializationError =
         LoggerMessage.Define(LogLevel.Error, new EventId(1001, "InitializationError"), "Failed to initialize ConfidenceStateService");
 
-    public ConfidenceStateService(string clientId, string clientSecret, ILogger<ConfidenceStateService>? logger = null)
+    public ConfidenceStateService(CallInvoker callInvoker, ILogger<ConfidenceStateService>? logger = null)
     {
-        ArgumentNullException.ThrowIfNull(clientId);
-        ArgumentNullException.ThrowIfNull(clientSecret);
+        ArgumentNullException.ThrowIfNull(callInvoker);
+        
         _logger = logger ?? NullLogger<ConfidenceStateService>.Instance;
 
         try
         {
-            var authChannel = CreateChannel();
-            var resolverChannel = CreateChannel();
-            var authClient = new AuthService.AuthServiceClient(authChannel);
-            _tokenHolder = new TokenHolder(clientId, clientSecret, authClient);
-            var jwtInterceptor = new JwtAuthClientInterceptor(_tokenHolder);
-            var callInvoker = resolverChannel.Intercept(jwtInterceptor);
             _grpcClient = new ResolverStateService.ResolverStateServiceClient(callInvoker);
-            _grpcChannel = resolverChannel;
         }
         catch (Exception ex)
         {
             LogInitializationError(_logger, ex);
             throw new InvalidOperationException("Failed to initialize ConfidenceStateService", ex);
         }
-    }
-
-    /// <summary>
-    /// Creates a gRPC channel for the AuthService.
-    /// </summary>
-    private static GrpcChannel CreateChannel()
-    {
-        return GrpcChannel.ForAddress("https://edge-grpc.spotify.com:443");
     }
 
     /// <summary>
@@ -78,7 +62,7 @@ public class ConfidenceStateService : IDisposable
 
             var request = new ResolverStateRequest();
             using var streamingCall = _grpcClient.FullResolverState(request, deadline: DateTime.UtcNow.AddSeconds(30), cancellationToken: cancellationToken);
-            
+
             ResolverState? resolverState = null;
             if (await streamingCall.ResponseStream.MoveNext(cancellationToken))
             {
@@ -176,34 +160,5 @@ public class ConfidenceStateService : IDisposable
             Google.Protobuf.WellKnownTypes.Value.KindOneofCase.ListValue => pbValue.ListValue.Values.Select(ConvertProtobufValueToObject).ToArray(),
             _ => null
         };
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        if (disposing)
-        {
-            try
-            {
-                _tokenHolder?.Dispose();
-                _grpcChannel?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                ConfidenceStateServiceLogger.ErrorDisposingGrpcChannel(_logger, ex);
-            }
-        }
-
-        _disposed = true;
-    }
-
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
     }
 }

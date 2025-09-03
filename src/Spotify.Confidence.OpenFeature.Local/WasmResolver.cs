@@ -74,7 +74,7 @@ public class WasmResolver : IDisposable
                     WasmResolverLogger.WasmImportCalled(_logger, "log_resolve", ptr);
                     var logResolveRequest = ConsumeRequest(ptr, bytes => LogResolveRequest.Parser.ParseFrom(bytes));
                     _resolveLogger.Log(logResolveRequest);
-                    return 0; // Return success
+                    return Transfer(new Response().ToByteArray()); // Return success
                 }),
                 
                 // Import log_assign - (param i32) (result i32)
@@ -82,19 +82,24 @@ public class WasmResolver : IDisposable
                 {
                     WasmResolverLogger.WasmImportCalled(_logger, "log_assign", ptr);
                     var logAssignRequest = ConsumeRequest(ptr, bytes => LogAssignRequest.Parser.ParseFrom(bytes));
+                    Console.WriteLine($"LogAssignRequest: {logAssignRequest.AssignedFlags}");  
+                    //Console.WriteLine($"LogAssignRequest: {logAssignRequest.Client.Account.Name}, {logAssignRequest.Client.ClientName}, {logAssignRequest.Client.ClientCredentialName}");  
                     _assignmentLogger.Log(logAssignRequest);
-                    return 0;
+                    return Transfer(new byte[] { 0 });
                 }),
 
                 // Import wasm_msg_host_current_time - (param i32) (result proto Timestamp)
                 Function.FromCallback(_store, (int ptr) => 
                 {
+                    Console.WriteLine("wasm_msg_host_current_time", ptr);
                     Timestamp timestamp = Timestamp.FromDateTime(DateTime.UtcNow);
-                    WasmResolverLogger.WasmImportCalledWithTimestamp(_logger, "wasm_msg_host_current_time", ptr, timestamp.Seconds);
-                    return TransferRequest(CreateWasmRequest(timestamp.ToByteArray()));
+                    //WasmResolverLogger.WasmImportCalledWithTimestamp(_logger, "wasm_msg_host_current_time", ptr, timestamp.Seconds);
+                    var response = new Response
+                    {
+                        Data = timestamp.ToByteString()
+                    };
+                    return Transfer(response.ToByteArray());
                 })
-
-                // TODO: Resolve token encryption key
             };
             
             _instance = new Instance(_store, _module, imports);
@@ -177,11 +182,11 @@ public class WasmResolver : IDisposable
     }
 
     /// <summary>
-    /// Transfers a request to WASM memory and returns the pointer, similar to Java transferRequest method.
+    /// Transfers a request to WASM memory and returns the pointer, similar to Java transfer method.
     /// </summary>
     /// <param name="data">The data to transfer to WASM memory.</param>
     /// <returns>Pointer to the request data in WASM memory.</returns>
-    private int TransferRequest(byte[] data)
+    private int Transfer(byte[] data)
     {
         var requestPtr = AllocateMemory(data.Length);
         WriteToMemory(requestPtr, data);
@@ -201,7 +206,7 @@ public class WasmResolver : IDisposable
         try
         {
             var requestBytes = CreateWasmRequest(stateBytes);
-            var requestPtr = TransferRequest(requestBytes);
+            var requestPtr = Transfer(requestBytes);
 
             var result = _setResolverStateFunction!.Invoke(requestPtr);
                    
@@ -242,7 +247,7 @@ public class WasmResolver : IDisposable
             ArgumentNullException.ThrowIfNull(_store);
 
             var requestBytes = CreateWasmRequest(request.ToByteArray());            
-            var requestPtr = TransferRequest(requestBytes);
+            var requestPtr = Transfer(requestBytes);
             var resultPtr = (int)_resolveFunction.Invoke(requestPtr)!;
             
             DeallocateMemory(requestPtr);
