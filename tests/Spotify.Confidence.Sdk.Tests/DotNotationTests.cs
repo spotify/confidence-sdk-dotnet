@@ -1,6 +1,6 @@
 using System.Text.Json;
 using Spotify.Confidence.Sdk.Models;
-using Spotify.Confidence.Sdk.Utils;
+using Spotify.Confidence.Common.Utils;
 using Xunit;
 
 namespace Spotify.Confidence.Sdk.Tests;
@@ -162,7 +162,7 @@ public class DotNotationTests
         var flagKey = "test-flag";
 
         // Act
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue(flag, flagKey, default(T)!);
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue(flag.Value, flagKey, default(T)!);
 
         // Assert
         Assert.Null(errorMessage);
@@ -186,7 +186,7 @@ public class DotNotationTests
         var flagKey = "test-flag";
 
         // Act
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<int>(flag, flagKey, 0);
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<int>(flag.Value, flagKey, 0);
 
         // Assert
         Assert.Null(errorMessage);
@@ -211,7 +211,7 @@ public class DotNotationTests
         var flagKey = "test-flag";
 
         // Act
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<long>(flag, flagKey, 0L);
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<long>(flag.Value, flagKey, 0L);
 
         // Assert
         Assert.Null(errorMessage);
@@ -236,7 +236,7 @@ public class DotNotationTests
         var flagKey = "test-flag";
 
         // Act
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<float>(flag, flagKey, 0.0f);
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<float>(flag.Value, flagKey, 0.0f);
 
         // Assert
         Assert.Null(errorMessage);
@@ -261,7 +261,7 @@ public class DotNotationTests
         var flagKey = "test-flag";
 
         // Act
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<decimal>(flag, flagKey, 0.0m);
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<decimal>(flag.Value, flagKey, 0.0m);
 
         // Assert
         Assert.Null(errorMessage);
@@ -291,7 +291,7 @@ public class DotNotationTests
         var flagKey = "test-flag";
 
         // Act
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<int>(flag, flagKey, 0);
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<int>(flag.Value, flagKey, 0);
 
         // Assert
         Assert.Null(errorMessage);
@@ -319,7 +319,7 @@ public class DotNotationTests
         var flagKey = "test-flag";
 
         // Act
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<float>(flag, flagKey, 0.0f);
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<float>(flag.Value, flagKey, 0.0f);
 
         // Assert
         Assert.Null(errorMessage);
@@ -352,22 +352,22 @@ public class DotNotationTests
         };
 
         // Act & Assert - Test int extraction
-        var (intResult, intError) = DotNotationHelper.ExtractTypedValue<int>(flag, "app-config.settings.timeout", 0);
+        var (intResult, intError) = DotNotationHelper.ExtractTypedValue<int>(flag.Value, "app-config.settings.timeout", 0);
         Assert.Null(intError);
         Assert.Equal(5000, intResult);
 
         // Act & Assert - Test long extraction
-        var (longResult, longError) = DotNotationHelper.ExtractTypedValue<long>(flag, "app-config.settings.maxRetries", 0L);
+        var (longResult, longError) = DotNotationHelper.ExtractTypedValue<long>(flag.Value, "app-config.settings.maxRetries", 0L);
         Assert.Null(longError);
         Assert.Equal(9223372036854775807L, longResult);
 
         // Act & Assert - Test float extraction
-        var (floatResult, floatError) = DotNotationHelper.ExtractTypedValue<float>(flag, "app-config.settings.threshold", 0.0f);
+        var (floatResult, floatError) = DotNotationHelper.ExtractTypedValue<float>(flag.Value, "app-config.settings.threshold", 0.0f);
         Assert.Null(floatError);
         Assert.Equal(2.5f, floatResult);
 
         // Act & Assert - Test decimal extraction
-        var (decimalResult, decimalError) = DotNotationHelper.ExtractTypedValue<decimal>(flag, "app-config.settings.budget", 0.0m);
+        var (decimalResult, decimalError) = DotNotationHelper.ExtractTypedValue<decimal>(flag.Value, "app-config.settings.budget", 0.0m);
         Assert.Null(decimalError);
         Assert.Equal(999.99m, decimalResult);
     }
@@ -398,7 +398,7 @@ public class DotNotationTests
         var flagKey = "user-config.user.settings.darkMode";
 
         // Act
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<bool>(flag, flagKey, false);
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<bool>(flag.Value, flagKey, false);
 
         // Assert
         Assert.Null(errorMessage);
@@ -425,7 +425,7 @@ public class DotNotationTests
         var flagKey = "test-flag.nonexistent";
 
         // Act
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<string>(flag, flagKey, "default");
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<string>(flag.Value, flagKey, "default");
 
         // Assert
         Assert.NotNull(errorMessage);
@@ -463,7 +463,7 @@ public class DotNotationTests
         {
             PropertyNameCaseInsensitive = true
         };
-        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<TestConfig>(flag, flagKey, new TestConfig(), jsonOptions);
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<TestConfig>(flag.Value, flagKey, new TestConfig(), jsonOptions);
 
         // Assert
         Assert.Null(errorMessage);

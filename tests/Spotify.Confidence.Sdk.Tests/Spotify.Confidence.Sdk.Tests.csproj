@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Spotify.Confidence.Sdk\Spotify.Confidence.Sdk.csproj" />
+    <ProjectReference Include="..\..\src\Spotify.Confidence.Common\Spotify.Confidence.Common.csproj" />
   </ItemGroup>
 
 </Project>
