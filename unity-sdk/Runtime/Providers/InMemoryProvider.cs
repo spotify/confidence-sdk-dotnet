@@ -42,31 +42,31 @@ namespace UnityOpenFeature.Providers
             foreach (var flag in flags) flagDictionary[flag.Key] = flag.Value;
         }
 
-        public ResolutionDetails<bool> ResolveBooleanValue(string flagKey, bool defaultValue, EvaluationContext context)
+        public ResolutionDetails<bool> ResolveBooleanValue(string flagKey, bool defaultValue)
         {
             if (!flagDictionary.TryGetValue(flagKey, out var value)) return ResolutionDetails<bool>.Error(flagKey, defaultValue, ErrorCode.FlagNotFound, $"Flag '{flagKey}' not found");
             return bool.TryParse(value.ToString(), out var boolValue) ? new ResolutionDetails<bool>(boolValue, flagKey) : ResolutionDetails<bool>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{value}' to boolean");
         }
 
-        public ResolutionDetails<string> ResolveStringValue(string flagKey, string defaultValue, EvaluationContext context)
+        public ResolutionDetails<string> ResolveStringValue(string flagKey, string defaultValue)
         {
             if (!flagDictionary.TryGetValue(flagKey, out var value)) return ResolutionDetails<string>.Error(flagKey, defaultValue, ErrorCode.FlagNotFound, $"Flag '{flagKey}' not found");
             return new ResolutionDetails<string>(value?.ToString() ?? defaultValue, flagKey);
         }
 
-        public ResolutionDetails<int> ResolveIntegerValue(string flagKey, int defaultValue, EvaluationContext context)
+        public ResolutionDetails<int> ResolveIntegerValue(string flagKey, int defaultValue)
         {
             if (!flagDictionary.TryGetValue(flagKey, out var value)) return ResolutionDetails<int>.Error(flagKey, defaultValue, ErrorCode.FlagNotFound, $"Flag '{flagKey}' not found");
             return int.TryParse(value.ToString(), out var intValue) ? new ResolutionDetails<int>(intValue, flagKey) : ResolutionDetails<int>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{value}' to integer");
         }
 
-        public ResolutionDetails<float> ResolveFloatValue(string flagKey, float defaultValue, EvaluationContext context)
+        public ResolutionDetails<float> ResolveFloatValue(string flagKey, float defaultValue)
         {
             if (!flagDictionary.TryGetValue(flagKey, out var value)) return ResolutionDetails<float>.Error(flagKey, defaultValue, ErrorCode.FlagNotFound, $"Flag '{flagKey}' not found");
             return float.TryParse(value.ToString(), out var floatValue) ? new ResolutionDetails<float>(floatValue, flagKey) : ResolutionDetails<float>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{value}' to float");
         }
 
-        public ResolutionDetails<T> ResolveObjectValue<T>(string flagKey, T defaultValue, EvaluationContext context)
+        public ResolutionDetails<T> ResolveObjectValue<T>(string flagKey, T defaultValue)
         {
             if (!flagDictionary.TryGetValue(flagKey, out var value)) return ResolutionDetails<T>.Error(flagKey, defaultValue, ErrorCode.FlagNotFound, $"Flag '{flagKey}' not found");
             try

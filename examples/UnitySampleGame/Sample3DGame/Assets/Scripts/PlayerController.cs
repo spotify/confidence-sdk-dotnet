@@ -58,7 +58,7 @@ public class PlayerController : MonoBehaviour
                 return;
             }
             Debug.Log($"Flags fetched and activated successfully!: {success}");
-            var value = client.GetBooleanDetails("vahid-test.enabled", false, new EvaluationContext("player"));
+            var value = client.GetBooleanDetails("vahid-test.enabled", false);
             Debug.Log("Flag value: " + value.Value);
             Debug.Log("Flag variant: " + value.Variant);
             Debug.Log("Error code: " + value.ErrorCode);

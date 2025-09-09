@@ -42,31 +42,31 @@ namespace UnityOpenFeature.Client
         public ResolutionDetails<bool> GetBooleanDetails(string flagKey, bool defaultValue, EvaluationContext context = null)
         {
             if (api.Provider == null) { Debug.LogWarning("No provider set"); return ResolutionDetails<bool>.Error(flagKey, defaultValue, ErrorCode.ProviderNotReady, "No provider"); }
-            return api.Provider.ResolveBooleanValue(flagKey, defaultValue, MergeContext(context));
+            return api.Provider.ResolveBooleanValue(flagKey, defaultValue);
         }
 
         public ResolutionDetails<string> GetStringDetails(string flagKey, string defaultValue, EvaluationContext context = null)
         {
             if (api.Provider == null) { Debug.LogWarning("No provider set"); return ResolutionDetails<string>.Error(flagKey, defaultValue, ErrorCode.ProviderNotReady, "No provider"); }
-            return api.Provider.ResolveStringValue(flagKey, defaultValue, MergeContext(context));
+            return api.Provider.ResolveStringValue(flagKey, defaultValue);
         }
 
         public ResolutionDetails<int> GetIntegerDetails(string flagKey, int defaultValue, EvaluationContext context = null)
         {
             if (api.Provider == null) { Debug.LogWarning("No provider set"); return ResolutionDetails<int>.Error(flagKey, defaultValue, ErrorCode.ProviderNotReady, "No provider"); }
-            return api.Provider.ResolveIntegerValue(flagKey, defaultValue, MergeContext(context));
+            return api.Provider.ResolveIntegerValue(flagKey, defaultValue);
         }
 
         public ResolutionDetails<float> GetFloatDetails(string flagKey, float defaultValue, EvaluationContext context = null)
         {
             if (api.Provider == null) { Debug.LogWarning("No provider set"); return ResolutionDetails<float>.Error(flagKey, defaultValue, ErrorCode.ProviderNotReady, "No provider"); }
-            return api.Provider.ResolveFloatValue(flagKey, defaultValue, MergeContext(context));
+            return api.Provider.ResolveFloatValue(flagKey, defaultValue);
         }
 
         public ResolutionDetails<T> GetObjectDetails<T>(string flagKey, T defaultValue, EvaluationContext context = null)
         {
             if (api.Provider == null) { Debug.LogWarning("No provider set"); return ResolutionDetails<T>.Error(flagKey, defaultValue, ErrorCode.ProviderNotReady, "No provider"); }
-            return api.Provider.ResolveObjectValue(flagKey, defaultValue, MergeContext(context));
+            return api.Provider.ResolveObjectValue<T>(flagKey, defaultValue);
         }
 
         private EvaluationContext MergeContext(EvaluationContext requestContext)

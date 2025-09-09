@@ -135,9 +135,9 @@ namespace UnityOpenFeature.Providers
             }
         }
 
-        public ResolutionDetails<bool> ResolveBooleanValue(string flagKey, bool defaultValue, EvaluationContext context)
+        public ResolutionDetails<bool> ResolveBooleanValue(string flagKey, bool defaultValue)
         {
-            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue, context);
+            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue);
             
             if (objectResult.ErrorCode != ErrorCode.None)
             {
@@ -176,9 +176,9 @@ namespace UnityOpenFeature.Providers
                 }   
         }
 
-        public ResolutionDetails<string> ResolveStringValue(string flagKey, string defaultValue, EvaluationContext context)
+        public ResolutionDetails<string> ResolveStringValue(string flagKey, string defaultValue)
         {
-            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue, context);
+            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue);
             
             if (objectResult.ErrorCode != ErrorCode.None)
             {
@@ -195,9 +195,9 @@ namespace UnityOpenFeature.Providers
             };
         }
 
-        public ResolutionDetails<int> ResolveIntegerValue(string flagKey, int defaultValue, EvaluationContext context)
+        public ResolutionDetails<int> ResolveIntegerValue(string flagKey, int defaultValue)
         {
-            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue, context);
+            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue);
             
             if (objectResult.ErrorCode != ErrorCode.None)
             {
@@ -227,9 +227,9 @@ namespace UnityOpenFeature.Providers
             return ResolutionDetails<int>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{objectResult.Value}' to integer");
         }
 
-        public ResolutionDetails<float> ResolveFloatValue(string flagKey, float defaultValue, EvaluationContext context)
+        public ResolutionDetails<float> ResolveFloatValue(string flagKey, float defaultValue)
         {
-            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue, context);
+            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue);
             
             if (objectResult.ErrorCode != ErrorCode.None)
             {
@@ -269,7 +269,7 @@ namespace UnityOpenFeature.Providers
             return ResolutionDetails<float>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{objectResult.Value}' to float");
         }
 
-        public ResolutionDetails<T> ResolveObjectValue<T>(string flagKey, T defaultValue, EvaluationContext context)
+        public ResolutionDetails<T> ResolveObjectValue<T>(string flagKey, T defaultValue)
         {
             var value = ResolveValueByDotNotation(flagKey);
             if (value == null)
