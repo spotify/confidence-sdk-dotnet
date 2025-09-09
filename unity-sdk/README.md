@@ -21,22 +21,6 @@ This SDK provides a Unity wrapper around the OpenFeature standard, enabling deve
 To test if the SDK compiles correctly with Unity:
 
 1. Ensure Unity 2022.3.62f1 is installed at `/Applications/Unity/Hub/Editor/2022.3.62f1/Unity.app/Contents/MacOS/Unity`
-2. Run the build test script from the unity-sdk directory:
-   ```bash
-   ./build-test.sh
-   ```
-
-The script will:
-- Create a temporary Unity test project
-- Add the Unity OpenFeature package as a local dependency
-- Attempt to build the project
-- Report success/failure and any warnings or errors
-- Clean up the temporary project
-
-### Expected Output
-
-- ✅ BUILD SUCCESSFUL! - SDK compiled without errors
-- ❌ BUILD FAILED! - Compilation errors found with details
 
 ## Package Structure
 
@@ -79,6 +63,26 @@ unity-sdk/
 
 - Unity 2020.3+
 - com.unity.nuget.newtonsoft-json: 3.0.2
+
+
+## Compile check
+
+Run the build test script from the unity-sdk directory:
+   ```bash
+   ./build-test.sh
+   ```
+
+The script will:
+- Create a temporary Unity test project
+- Add the Unity OpenFeature package as a local dependency
+- Attempt to build the project
+- Report success/failure and any warnings or errors
+- Clean up the temporary project
+
+### Expected Output
+
+- ✅ BUILD SUCCESSFUL! - SDK compiled without errors
+- ❌ BUILD FAILED! - Compilation errors found with details
 
 ## Contributing
 
