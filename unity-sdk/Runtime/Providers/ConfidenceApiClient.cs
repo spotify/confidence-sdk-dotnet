@@ -23,8 +23,8 @@ namespace UnityOpenFeature.Providers
     public class ConfidenceApiClient : MonoBehaviour
     {
 
-        private string sdkId = "SDK_ID_KOTLIN_CONFIDENCE";
-        private string sdkVersion = "1.0.0";
+        private string sdkId = "SDK_ID_DOTNET_CONFIDENCE";
+        private string sdkVersion = "0.1.1";
         private string baseUrl = "https://resolver.confidence.dev";
         private string clientSecret;
 
