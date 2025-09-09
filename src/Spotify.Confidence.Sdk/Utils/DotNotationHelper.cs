@@ -12,13 +12,6 @@ internal static class DotNotationHelper
     /// Parses a dot-notation string into flag name and property path.
     /// </summary>
 
-<<<<<<< TODO: Unmerged change from project 'Spotify.Confidence.Sdk(net9.0)', Before:
-    /// <param name="flagKey">The flag key that may contain dot notation (e.g., "flag.property.subproperty")</param>
-    /// <returns>A tuple containing the base flag name and the property path</returns>
-=======
-    /// <param name="flagKey">The flag key that may contain dot notation (e.g., "flag.property.subproperty").</param>
-    /// <returns>A tuple containing the base flag name and the property path.</returns>
->>>>>>> After
     /// <param name="flagKey">The flag key that may contain dot notation (e.g., "flag.property.subproperty").</param>
     /// <returns>A tuple containing the base flag name and the property path.</returns>
     public static (string FlagName, string[] PropertyPath) ParseDotNotation(string flagKey)
@@ -46,15 +39,6 @@ internal static class DotNotationHelper
     /// Navigates through nested object properties using a property path.
     /// </summary>
 
-<<<<<<< TODO: Unmerged change from project 'Spotify.Confidence.Sdk(net9.0)', Before:
-    /// <param name="value">The starting value (typically flag.Value or the "value" property)</param>
-    /// <param name="propertyPath">Array of property names to navigate through</param>
-    /// <returns>The value at the end of the property path, or null if not found</returns>
-=======
-    /// <param name="value">The starting value (typically flag.Value or the "value" property).</param>
-    /// <param name="propertyPath">Array of property names to navigate through.</param>
-    /// <returns>The value at the end of the property path, or null if not found.</returns>
->>>>>>> After
     /// <param name="value">The starting value (typically flag.Value or the "value" property).</param>
     /// <param name="propertyPath">Array of property names to navigate through.</param>
     /// <returns>The value at the end of the property path, or null if not found.</returns>
@@ -83,15 +67,6 @@ internal static class DotNotationHelper
     /// Gets a property value from an object, handling both Dictionary and JsonElement types.
     /// </summary>
 
-<<<<<<< TODO: Unmerged change from project 'Spotify.Confidence.Sdk(net9.0)', Before:
-    /// <param name="obj">The object to get the property from</param>
-    /// <param name="propertyName">The name of the property to get</param>
-    /// <returns>The property value, or null if not found</returns>
-=======
-    /// <param name="obj">The object to get the property from.</param>
-    /// <param name="propertyName">The name of the property to get.</param>
-    /// <returns>The property value, or null if not found.</returns>
->>>>>>> After
     /// <param name="obj">The object to get the property from.</param>
     /// <param name="propertyName">The name of the property to get.</param>
     /// <returns>The property value, or null if not found.</returns>
@@ -129,15 +104,6 @@ internal static class DotNotationHelper
     /// Extracts the appropriate value from a ResolvedFlag, handling both dot-notation and regular flags.
     /// </summary>
 
-<<<<<<< TODO: Unmerged change from project 'Spotify.Confidence.Sdk(net9.0)', Before:
-    /// <param name="flagValue">The Value dictionary from a ResolvedFlag</param>
-    /// <param name="propertyPath">The property path to navigate (empty for regular flags)</param>
-    /// <returns>The extracted value</returns>
-=======
-    /// <param name="flagValue">The Value dictionary from a ResolvedFlag.</param>
-    /// <param name="propertyPath">The property path to navigate (empty for regular flags).</param>
-    /// <returns>The extracted value.</returns>
->>>>>>> After
     /// <param name="flagValue">The Value dictionary from a ResolvedFlag.</param>
     /// <param name="propertyPath">The property path to navigate (empty for regular flags).</param>
     /// <returns>The extracted value.</returns>
@@ -160,21 +126,6 @@ internal static class DotNotationHelper
     /// Extracts and converts a typed value from a ResolvedFlag using dot-notation.
     /// </summary>
 
-<<<<<<< TODO: Unmerged change from project 'Spotify.Confidence.Sdk(net9.0)', Before:
-    /// <typeparam name="T">The target type to convert the value to</typeparam>
-    /// <param name="flag">The resolved flag</param>
-    /// <param name="flagKey">The original flag key (may contain dot-notation)</param>
-    /// <param name="defaultValue">The default value to return if extraction fails</param>
-    /// <param name="jsonOptions">JSON serializer options for complex type conversion</param>
-    /// <returns>A tuple containing the typed value and any error message</returns>
-=======
-    /// <typeparam name="T">The target type to convert the value to.</typeparam>
-    /// <param name="flag">The resolved flag.</param>
-    /// <param name="flagKey">The original flag key (may contain dot-notation).</param>
-    /// <param name="defaultValue">The default value to return if extraction fails.</param>
-    /// <param name="jsonOptions">JSON serializer options for complex type conversion.</param>
-    /// <returns>A tuple containing the typed value and any error message.</returns>
->>>>>>> After
     /// <typeparam name="T">The target type to convert the value to.</typeparam>
     /// <param name="flag">The resolved flag.</param>
     /// <param name="flagKey">The original flag key (may contain dot-notation).</param>
@@ -214,19 +165,6 @@ internal static class DotNotationHelper
     /// Converts a value to the target type, handling JsonElement and other conversions.
     /// </summary>
 
-<<<<<<< TODO: Unmerged change from project 'Spotify.Confidence.Sdk(net9.0)', Before:
-    /// <typeparam name="T">The target type</typeparam>
-    /// <param name="value">The value to convert</param>
-    /// <param name="defaultValue">The default value if conversion fails</param>
-    /// <param name="jsonOptions">JSON serializer options</param>
-    /// <returns>The converted value</returns>
-=======
-    /// <typeparam name="T">The target type.</typeparam>
-    /// <param name="value">The value to convert.</param>
-    /// <param name="defaultValue">The default value if conversion fails.</param>
-    /// <param name="jsonOptions">JSON serializer options.</param>
-    /// <returns>The converted value.</returns>
->>>>>>> After
     /// <typeparam name="T">The target type.</typeparam>
     /// <param name="value">The value to convert.</param>
     /// <param name="defaultValue">The default value if conversion fails.</param>
