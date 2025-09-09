@@ -32,11 +32,11 @@ public class DefaultValueParameterTests
         bool capturedDefaultValue = false;
 
         _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(
-                It.IsAny<string>(), 
-                It.IsAny<bool>(), 
-                It.IsAny<ConfidenceContext>(), 
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<ConfidenceContext>(),
                 default))
-            .Callback<string, bool, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) => 
+            .Callback<string, bool, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) =>
                 capturedDefaultValue = defaultVal)
             .ReturnsAsync(new EvaluationResult<bool>
             {
@@ -61,11 +61,11 @@ public class DefaultValueParameterTests
         string capturedDefaultValue = "";
 
         _mockClient.Setup(c => c.EvaluateStringFlagAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
-                It.IsAny<ConfidenceContext>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ConfidenceContext>(),
                 default))
-            .Callback<string, string, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) => 
+            .Callback<string, string, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) =>
                 capturedDefaultValue = defaultVal)
             .ReturnsAsync(new EvaluationResult<string>
             {
@@ -90,11 +90,11 @@ public class DefaultValueParameterTests
         double capturedDefaultValue = 0;
 
         _mockClient.Setup(c => c.EvaluateNumericFlagAsync(
-                It.IsAny<string>(), 
-                It.IsAny<double>(), 
-                It.IsAny<ConfidenceContext>(), 
+                It.IsAny<string>(),
+                It.IsAny<double>(),
+                It.IsAny<ConfidenceContext>(),
                 default))
-            .Callback<string, double, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) => 
+            .Callback<string, double, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) =>
                 capturedDefaultValue = defaultVal)
             .ReturnsAsync(new EvaluationResult<double>
             {
@@ -119,11 +119,11 @@ public class DefaultValueParameterTests
         double capturedDefaultValue = 0;
 
         _mockClient.Setup(c => c.EvaluateNumericFlagAsync(
-                It.IsAny<string>(), 
-                It.IsAny<double>(), 
-                It.IsAny<ConfidenceContext>(), 
+                It.IsAny<string>(),
+                It.IsAny<double>(),
+                It.IsAny<ConfidenceContext>(),
                 default))
-            .Callback<string, double, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) => 
+            .Callback<string, double, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) =>
                 capturedDefaultValue = defaultVal)
             .ReturnsAsync(new EvaluationResult<double>
             {
@@ -152,11 +152,11 @@ public class DefaultValueParameterTests
         object? capturedDefaultValue = null;
 
         _mockClient.Setup(c => c.EvaluateJsonFlagAsync(
-                It.IsAny<string>(), 
-                It.IsAny<object>(), 
-                It.IsAny<ConfidenceContext>(), 
+                It.IsAny<string>(),
+                It.IsAny<object>(),
+                It.IsAny<ConfidenceContext>(),
                 default))
-            .Callback<string, object, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) => 
+            .Callback<string, object, ConfidenceContext?, System.Threading.CancellationToken>((_, defaultVal, _, _) =>
                 capturedDefaultValue = defaultVal)
             .ReturnsAsync(new EvaluationResult<object>
             {
@@ -172,9 +172,9 @@ public class DefaultValueParameterTests
         // The provider should pass defaultValue.AsObject to the client
         Assert.Equal(customDefault.AsObject, capturedDefaultValue);
         _mockClient.Verify(c => c.EvaluateJsonFlagAsync(
-            flagKey, 
-            It.Is<object>(o => o == customDefault.AsObject), 
-            It.IsAny<ConfidenceContext>(), 
+            flagKey,
+            It.Is<object>(o => o == customDefault.AsObject),
+            It.IsAny<ConfidenceContext>(),
             default), Times.Once);
     }
 

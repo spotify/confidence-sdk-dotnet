@@ -56,7 +56,7 @@ public class ConfidenceProvider : FeatureProvider
         CancellationToken cancellationToken = default)
     {
         ConfidenceProviderLogger.ResolvingBooleanFlag(_logger, flagKey, defaultValue, null);
-        
+
         try
         {
             var result = await _confidenceClient.EvaluateBooleanFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
@@ -82,7 +82,7 @@ public class ConfidenceProvider : FeatureProvider
         CancellationToken cancellationToken = default)
     {
         ConfidenceProviderLogger.ResolvingStringFlag(_logger, flagKey, defaultValue, null);
-        
+
         try
         {
             var result = await _confidenceClient.EvaluateStringFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
@@ -108,7 +108,7 @@ public class ConfidenceProvider : FeatureProvider
         CancellationToken cancellationToken = default)
     {
         ConfidenceProviderLogger.ResolvingIntegerFlag(_logger, flagKey, defaultValue, null);
-        
+
         try
         {
             var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
@@ -135,7 +135,7 @@ public class ConfidenceProvider : FeatureProvider
         CancellationToken cancellationToken = default)
     {
         ConfidenceProviderLogger.ResolvingDoubleFlag(_logger, flagKey, defaultValue, null);
-        
+
         try
         {
             var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
@@ -161,7 +161,7 @@ public class ConfidenceProvider : FeatureProvider
         CancellationToken cancellationToken = default)
     {
         ConfidenceProviderLogger.ResolvingStructureFlag(_logger, flagKey, defaultValue, null);
-        
+
         try
         {
             var result = await _confidenceClient.EvaluateJsonFlagAsync(flagKey, defaultValue.AsObject ?? new Dictionary<string, object>(), CreateConfidenceContext(context), cancellationToken);
@@ -307,7 +307,7 @@ public class ConfidenceProvider : FeatureProvider
                 .SetMinimumLevel(logLevel)
                 .AddConsole();
         });
-        
+
         return loggerFactory.CreateLogger<ConfidenceProvider>();
     }
 
@@ -319,7 +319,7 @@ public class ConfidenceProvider : FeatureProvider
                 .SetMinimumLevel(logLevel)
                 .AddConsole();
         });
-        
+
         return loggerFactory.CreateLogger<ConfidenceClient>();
     }
 }

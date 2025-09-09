@@ -24,7 +24,7 @@ public class DeveloperExperienceTests
     {
         // Setup mock confidence client to control responses
         _mockClient = new Mock<IConfidenceClient>();
-        
+
         // Create Confidence provider with mocked client
         _provider = new ConfidenceProvider(_mockClient.Object);
     }
@@ -36,11 +36,11 @@ public class DeveloperExperienceTests
         const string flagKey = "show-new-feature";
         const bool flagValue = true;
         const bool defaultValue = false;
-        
+
         _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(
-                flagKey, 
-                defaultValue, 
-                It.IsAny<ConfidenceContext>(), 
+                flagKey,
+                defaultValue,
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(new EvaluationResult<bool>
             {
@@ -69,11 +69,11 @@ public class DeveloperExperienceTests
         // Arrange - Setup Confidence to return failure (flag not found)
         const string flagKey = "non-existent-flag";
         const bool defaultValue = false;
-        
+
         _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(
-                flagKey, 
-                defaultValue, 
-                It.IsAny<ConfidenceContext>(), 
+                flagKey,
+                defaultValue,
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(EvaluationResult.Failure(defaultValue, "Flag not found"));
 
@@ -97,11 +97,11 @@ public class DeveloperExperienceTests
         const string flagKey = "welcome-message";
         const string flagValue = "Welcome to our new app!";
         const string defaultValue = "Welcome!";
-        
+
         _mockClient.Setup(c => c.EvaluateStringFlagAsync(
-                flagKey, 
-                defaultValue, 
-                It.IsAny<ConfidenceContext>(), 
+                flagKey,
+                defaultValue,
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(new EvaluationResult<string>
             {
@@ -131,11 +131,11 @@ public class DeveloperExperienceTests
         const string flagKey = "max-retry-count";
         const double flagValue = 5.0;
         const int defaultValue = 3;
-        
+
         _mockClient.Setup(c => c.EvaluateNumericFlagAsync(
-                flagKey, 
-                (double)defaultValue, 
-                It.IsAny<ConfidenceContext>(), 
+                flagKey,
+                (double)defaultValue,
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(new EvaluationResult<double>
             {
@@ -182,11 +182,11 @@ public class DeveloperExperienceTests
         };
 
         var defaultValue = new Value(Structure.Builder().Build()); // empty default
-        
+
         _mockClient.Setup(c => c.EvaluateJsonFlagAsync(
-                flagKey, 
-                It.IsAny<object>(), 
-                It.IsAny<ConfidenceContext>(), 
+                flagKey,
+                It.IsAny<object>(),
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(new EvaluationResult<object>
             {
@@ -207,11 +207,11 @@ public class DeveloperExperienceTests
         Assert.NotNull(result.Value);
         var configStruct = result.Value.AsStructure!;
         Assert.Equal("dark", configStruct.AsDictionary()["theme"].AsString);
-        
+
         var features = configStruct.AsDictionary()["features"].AsStructure!.AsDictionary();
         Assert.True(features["chat"].AsBoolean);
         Assert.False(features["notifications"].AsBoolean);
-        
+
         Assert.Equal("TARGETING_MATCH", result.Reason);
         Assert.Equal("premium", result.Variant);
     }
@@ -221,9 +221,9 @@ public class DeveloperExperienceTests
     {
         // Arrange - Some flags exist, others don't
         _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(
-                "new-dashboard", 
-                true, 
-                It.IsAny<ConfidenceContext>(), 
+                "new-dashboard",
+                true,
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(new EvaluationResult<bool>
             {
@@ -233,16 +233,16 @@ public class DeveloperExperienceTests
             });
 
         _mockClient.Setup(c => c.EvaluateStringFlagAsync(
-                "experiment-variant", 
-                "control", 
-                It.IsAny<ConfidenceContext>(), 
+                "experiment-variant",
+                "control",
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(EvaluationResult.Failure("control", "Flag not found"));
 
         _mockClient.Setup(c => c.EvaluateNumericFlagAsync(
-                "max-connections", 
-                10.0, 
-                It.IsAny<ConfidenceContext>(), 
+                "max-connections",
+                10.0,
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(new EvaluationResult<double>
             {
@@ -264,10 +264,10 @@ public class DeveloperExperienceTests
         // Assert - Developer gets mix of real values and defaults
         Assert.True(dashboardResult.Value); // From API
         Assert.Equal("TARGETING_MATCH", dashboardResult.Reason);
-        
+
         Assert.Equal("control", experimentResult.Value); // Default (flag not found)
         Assert.Equal("ERROR", experimentResult.Reason);
-        
+
         Assert.Equal(25, connectionsResult.Value); // From API
         Assert.Equal("TARGETING_MATCH", connectionsResult.Reason);
     }
@@ -277,16 +277,16 @@ public class DeveloperExperienceTests
     {
         // Arrange - Setup Confidence to throw exceptions (simulating API errors)
         _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(
-                It.IsAny<string>(), 
-                It.IsAny<bool>(), 
-                It.IsAny<ConfidenceContext>(), 
+                It.IsAny<string>(),
+                It.IsAny<bool>(),
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ThrowsAsync(new Exception("API Error"));
 
         _mockClient.Setup(c => c.EvaluateStringFlagAsync(
-                It.IsAny<string>(), 
-                It.IsAny<string>(), 
-                It.IsAny<ConfidenceContext>(), 
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ThrowsAsync(new Exception("API Error"));
 
@@ -301,7 +301,7 @@ public class DeveloperExperienceTests
         // Assert - Application continues functioning with defaults
         Assert.False(boolResult.Value);
         Assert.Equal("Error resolving flag", boolResult.Reason);
-        
+
         Assert.Equal("default-config", stringResult.Value);
         Assert.Equal("Error resolving flag", stringResult.Reason);
     }
@@ -311,9 +311,9 @@ public class DeveloperExperienceTests
     {
         // Arrange - Setup realistic feature flag configuration
         _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(
-                "new-payment-flow", 
-                false, 
-                It.IsAny<ConfidenceContext>(), 
+                "new-payment-flow",
+                false,
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(new EvaluationResult<bool>
             {
@@ -323,9 +323,9 @@ public class DeveloperExperienceTests
             });
 
         _mockClient.Setup(c => c.EvaluateNumericFlagAsync(
-                "max-upload-size-mb", 
-                10.0, 
-                It.IsAny<ConfidenceContext>(), 
+                "max-upload-size-mb",
+                10.0,
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(new EvaluationResult<double>
             {
@@ -342,9 +342,9 @@ public class DeveloperExperienceTests
         };
 
         _mockClient.Setup(c => c.EvaluateJsonFlagAsync(
-                "ui-theme", 
-                It.IsAny<object>(), 
-                It.IsAny<ConfidenceContext>(), 
+                "ui-theme",
+                It.IsAny<object>(),
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(new EvaluationResult<object>
             {
@@ -355,9 +355,9 @@ public class DeveloperExperienceTests
 
         // Setup feature-rollout-percent to return failure (simulating flag not found)
         _mockClient.Setup(c => c.EvaluateNumericFlagAsync(
-                "feature-rollout-percent", 
-                0.0, 
-                It.IsAny<ConfidenceContext>(), 
+                "feature-rollout-percent",
+                0.0,
+                It.IsAny<ConfidenceContext>(),
                 default))
             .ReturnsAsync(EvaluationResult.Failure(0.0, "Flag not found"));
 
@@ -387,14 +387,14 @@ public class DeveloperExperienceTests
         // Assert - Developer gets expected behavior for their application
         Assert.True(paymentResult.Value); // Beta users get new payment flow
         Assert.Equal("TARGETING_MATCH", paymentResult.Reason);
-        
+
         Assert.Equal(100, uploadResult.Value); // Pro users get higher upload limit
         Assert.Equal("TARGETING_MATCH", uploadResult.Reason);
-        
+
         var theme = themeResult.Value.AsStructure!.AsDictionary()["theme"].AsString;
         Assert.Equal("dark", theme); // Pro users get dark theme
         Assert.Equal("TARGETING_MATCH", themeResult.Reason);
-        
+
         Assert.Equal(0.0, rolloutResult.Value); // Flag not found, gets default
         Assert.Equal("ERROR", rolloutResult.Reason);
     }

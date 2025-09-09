@@ -32,9 +32,9 @@ try
         TimeoutSeconds = 30,
         LogLevel = LogLevel.Debug // Configure SDK logging level (defaults to Information)
     };
-    
+
     var confidenceProvider = new ConfidenceProvider(confidenceOptions);
-    
+
     // Set the provider in the OpenFeature API
     Api.Instance.SetProviderAsync(confidenceProvider).Wait();
 
@@ -162,10 +162,10 @@ static async Task DemoDotNotation(IFeatureClient client, ILogger logger)
         Console.WriteLine("📋 Traditional approach (get entire structure):");
         var fullStructure = await client.GetObjectValueAsync("hawkflag", new Value(), context);
         var structure = fullStructure.AsStructure;
-        
+
         var traditionalColor = "defaultColor";
         var traditionalMessage = "defaultMessage";
-        
+
         if (structure != null && structure.ContainsKey("color"))
         {
             traditionalColor = structure.GetValue("color")?.AsString ?? "defaultColor";
@@ -174,18 +174,18 @@ static async Task DemoDotNotation(IFeatureClient client, ILogger logger)
         {
             traditionalMessage = structure.GetValue("message")?.AsString ?? "defaultMessage";
         }
-        
+
         Console.WriteLine($"   Color: {traditionalColor}");
         Console.WriteLine($"   Message: {traditionalMessage}");
         Console.WriteLine();
 
         // NEW: Dot-notation approach - direct access with type safety
         Console.WriteLine("✨ NEW: Dot-notation approach (direct access):");
-        
+
         // Extract individual properties directly using dot-notation
         var color = await client.GetStringValueAsync("hawkflag.color", "defaultColor", context);
         var message = await client.GetStringValueAsync("hawkflag.message", "defaultMessage", context);
-        
+
         Console.WriteLine($"   hawkflag.color = \"{color}\"");
         Console.WriteLine($"   hawkflag.message = \"{message}\"");
         Console.WriteLine();

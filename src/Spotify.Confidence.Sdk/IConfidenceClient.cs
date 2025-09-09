@@ -160,13 +160,13 @@ public interface IConfidenceClient
         ConfidenceContext? context = null,
         CancellationToken cancellationToken = default);
 
-    /// Resolves a flag structure without value extraction or type conversion.
-    /// This method handles dot-notation by resolving the base flag name.
-    /// </summary>
-    /// <param name="flagKey">The key of the flag to resolve (may include dot-notation).</param>
-    /// <param name="context">The context to use for evaluation.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The resolved flag structure or null if not found.</returns>
+    // Resolves a flag structure without value extraction or type conversion.
+    // This method handles dot-notation by resolving the base flag name.
+    // </summary>
+    // <param name="flagKey">The key of the flag to resolve (may include dot-notation).</param>
+    // <param name="context">The context to use for evaluation.</param>
+    // <param name="cancellationToken">A token to cancel the operation.</param>
+    // <returns>The resolved flag structure or null if not found.</returns>
     Task<ResolvedFlag?> ResolveFlagStructureAsync(
         string flagKey,
         ConfidenceContext? context = null,

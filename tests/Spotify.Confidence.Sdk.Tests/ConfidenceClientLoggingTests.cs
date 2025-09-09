@@ -52,7 +52,7 @@ public class ConfidenceClientLoggingTests
     {
         // Arrange
         var testLogger = new TestLogger<ConfidenceClient>(LogLevel.Warning);
-        
+
         var options = new ConfidenceOptions
         {
             ClientSecret = "test-secret",
@@ -66,11 +66,11 @@ public class ConfidenceClientLoggingTests
 
         // Assert
         var logs = testLogger.Logs;
-        
+
         // Should not contain Information or Debug level logs
         Assert.DoesNotContain(logs, log => log.Level == LogLevel.Information);
         Assert.DoesNotContain(logs, log => log.Level == LogLevel.Debug);
-        
+
         // Verify no initialization log (which is Information level) was captured
         Assert.DoesNotContain(logs, log => log.Message?.Contains("ConfidenceClient initialized") == true);
     }
@@ -80,7 +80,7 @@ public class ConfidenceClientLoggingTests
     {
         // Arrange
         var testLogger = new TestLogger<ConfidenceClient>(LogLevel.Information);
-        
+
         var options = new ConfidenceOptions
         {
             ClientSecret = "test-secret",
@@ -94,10 +94,10 @@ public class ConfidenceClientLoggingTests
 
         // Assert
         var logs = testLogger.Logs;
-        
+
         // Should not contain Debug level logs
         Assert.DoesNotContain(logs, log => log.Level == LogLevel.Debug);
-        
+
         // Should contain Information level logs (like initialization)
         Assert.Contains(logs, log => log.Level == LogLevel.Information);
         Assert.Contains(logs, log => log.Message?.Contains("ConfidenceClient initialized") == true);
@@ -108,7 +108,7 @@ public class ConfidenceClientLoggingTests
     {
         // Arrange
         var testLogger = new TestLogger<ConfidenceClient>(LogLevel.Debug);
-        
+
         var options = new ConfidenceOptions
         {
             ClientSecret = "test-secret",
@@ -151,11 +151,11 @@ public class ConfidenceClientLoggingTests
 
         // Assert
         var logs = testLogger.Logs;
-        
+
         // Should contain Information level logs (like initialization)
         Assert.Contains(logs, log => log.Level == LogLevel.Information);
         Assert.Contains(logs, log => log.Message?.Contains("ConfidenceClient initialized") == true);
-        
+
         // Should contain Debug level logs from flag evaluation
         Assert.Contains(logs, log => log.Level == LogLevel.Debug);
         Assert.Contains(logs, log => log.Message?.Contains("Resolving flag") == true);
@@ -166,7 +166,7 @@ public class ConfidenceClientLoggingTests
     {
         // Arrange
         var testLogger = new TestLogger<ConfidenceClient>(LogLevel.None);
-        
+
         var options = new ConfidenceOptions
         {
             ClientSecret = "test-secret",
@@ -180,7 +180,7 @@ public class ConfidenceClientLoggingTests
 
         // Assert
         var logs = testLogger.Logs;
-        
+
         // Should not contain any logs
         Assert.Empty(logs);
     }

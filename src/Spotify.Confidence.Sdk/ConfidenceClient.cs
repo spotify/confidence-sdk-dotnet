@@ -76,7 +76,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
 
         ConfigureHttpClient(_resolveClient);
         ConfigureHttpClient(_trackingClient);
-        
+
         ConfidenceClientLogger.ClientInitialized(_logger, options.ResolveUrl, options.EventUrl, options.TimeoutSeconds, options.MaxRetries, null);
     }
 
@@ -131,7 +131,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.TrackingEvent(_logger, eventName, data, null);
-        
+
         var currentTime = DateTimeOffset.UtcNow;
         var iso8601Time = currentTime.ToString("O");
 
@@ -190,7 +190,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.ResolvingFlag(_logger, flagKey, typeof(T).Name, defaultValue, null);
-        
+
         try
         {
             var request = new EvaluationRequest(flagKey, context, _clientSecret);
@@ -277,7 +277,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
                 .SetMinimumLevel(logLevel)
                 .AddConsole();
         });
-        
+
         return loggerFactory.CreateLogger<ConfidenceClient>();
     }
 
@@ -308,7 +308,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
     {
         var baseUrl = client.BaseAddress?.ToString() ?? "unknown";
         ConfidenceClientLogger.SendingRequest(_logger, typeof(T).Name, baseUrl, path, null);
-        
+
         try
         {
             var response = await client.PostAsJsonAsync(
@@ -451,10 +451,10 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         CancellationToken cancellationToken = default)
     {
         ConfidenceClientLogger.ResolvingFlag(_logger, flagKey, "ResolvedFlag", null, null);
-        
+
         // Parse dot-notation to get base flag name
         var (baseFlagName, _) = DotNotationHelper.ParseDotNotation(flagKey);
-        
+
         var request = new EvaluationRequest(baseFlagName, context, _clientSecret);
         var response = await SendRequestAsync<ResolveResponse>(_resolveClient, RESOLVE_FLAGS_ENDPOINT, request, cancellationToken);
 
@@ -481,7 +481,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         {
             // Parse dot-notation to get base flag name for error messages
             var (baseFlagName, _) = DotNotationHelper.ParseDotNotation(flagKey);
-            
+
             var flag = await ResolveFlagStructureAsync(flagKey, context, cancellationToken);
             if (flag == null)
             {
@@ -490,7 +490,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
             }
 
             var (value, errorMessage) = DotNotationHelper.ExtractTypedValue(flag, flagKey, defaultValue, _jsonOptions);
-            
+
             if (errorMessage != null)
             {
                 ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, null);

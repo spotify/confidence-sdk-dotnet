@@ -494,7 +494,7 @@ public class ConfidenceClientTests
 
         // Act - TrackAsync should complete successfully even when cancelled (fire-and-forget behavior)
         await _client.TrackAsync(eventName, data, cts.Token);
-        
+
         // Assert - If we reach here, the method completed without throwing
         Assert.True(true); // Test passes if no exception was thrown
     }
@@ -505,7 +505,7 @@ public class ConfidenceClientTests
         // Arrange
         var flagKey = "test-flag";
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
-        
+
         // Set up mock to simulate a delayed response that respects cancellation
         _mockHandler
             .Protected()
