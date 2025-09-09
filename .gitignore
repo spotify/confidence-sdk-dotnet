@@ -64,3 +64,17 @@ _ReSharper*/
 
 # macOS
 .DS_Store 
+
+# unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Unity Addressables and StreamingAssets temp files
+/[Aa]ssets/AddressableAssetsData/*/*.bin
