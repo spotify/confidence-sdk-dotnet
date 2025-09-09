@@ -65,7 +65,7 @@ _ReSharper*/
 # macOS
 .DS_Store 
 
-# unity
+# Unity - General patterns for all Unity projects
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
@@ -76,5 +76,532 @@ _ReSharper*/
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
 
+# Unity - Nested project patterns (for examples/unity-sdk)
+/**/Library/
+/**/Temp/
+/**/Obj/
+/**/Build/
+/**/Builds/
+/**/Logs/
+/**/UserSettings/
+/**/MemoryCaptures/
+/**/Recordings/
+
 # Unity Addressables and StreamingAssets temp files
 /[Aa]ssets/AddressableAssetsData/*/*.bin
+/**/Assets/AddressableAssetsData/*/*.bin
+
+# Unity Shader Cache (covers direct and nested paths)
+**/Library/ShaderCache/
+**/Library/**/ShaderCache/
+
+# Unity Build artifacts
+*.apk
+*.aab
+*.ipa
+*.app
+*.exe
+*.msi
+*.dmg
+*.pkg
+
+# Unity Test Results
+**/TestResults/
+**/TestReports/
+
+# Unity Burst Compiler cache
+**/Library/BurstCache/
+
+# Unity GI Cache
+**/Library/GICache/
+
+# Unity Script Assembler cache
+**/Library/ScriptAssemblies/
+
+# Unity Asset Database files
+**/Library/AssetDatabase3
+**/Library/ArtifactDB
+**/Library/expandedItems
+
+# Unity Analytics cache
+**/Library/Analytics/
+
+# Unity Crash Reports
+**/Library/CrashReport/
+
+# Unity Editor Analytics
+**/Library/EditorAnalytics/
+
+# Unity Editor Settings (local to machine)
+/**/Editor/EditorUserSettings.asset
+
+# Unity CrashReporter
+**/Library/CrashReporter/
+
+# Unity PlayMode cache
+**/Library/PlayMode/
+
+# Unity Profiler data
+*.raw
+**/Library/Profiler/
+
+# Unity UWP build artifacts
+**/Builds/UWP/
+
+# Unity WebGL build artifacts
+**/Builds/WebGL/
+
+# Unity Linux build artifacts
+**/Builds/Linux/
+
+# Unity macOS build artifacts
+**/Builds/macOS/
+
+# Unity Windows build artifacts
+**/Builds/Windows/
+
+# Unity Android build artifacts
+**/Builds/Android/
+
+# Unity iOS build artifacts
+**/Builds/iOS/
+
+# Unity Switch build artifacts
+**/Builds/Switch/
+
+# Unity Xbox build artifacts
+**/Builds/Xbox/
+
+# Unity PlayStation build artifacts
+**/Builds/PlayStation/
+
+# Unity Stadia build artifacts
+**/Builds/Stadia/
+
+# Unity tvOS build artifacts
+**/Builds/tvOS/
+
+# Unity visionOS build artifacts
+**/Builds/visionOS/
+
+# Unity Standalone build artifacts
+**/Builds/Standalone*/
+
+# Unity Package Manager cache
+**/Library/PackageCache/
+**/Packages/packages-lock.json.bak
+
+# Unity Assembly Definition cache
+**/Library/ScriptAssemblies/
+
+# Unity Asset Store cache
+**/Library/AssetStore/
+
+# Unity Editor backups
+**/Library/Editor/Backup/
+
+# Unity Editor crash reports
+**/Library/Editor/CrashReports/
+
+# Unity Editor log files
+**/Library/Editor/Editor.log
+
+# Unity StreamingAssets build artifacts
+**/Assets/StreamingAssets/**/*.meta
+
+# Unity Resources build artifacts (if any)
+**/Assets/Resources/**/*.meta
+
+# Unity Editor platform-specific settings
+**/ProjectSettings/EditorSettings.asset
+
+# Unity NavMesh cache
+**/Library/NavMesh/
+
+# Unity Audio cache
+**/Library/Audio/
+
+# Unity Physics cache
+**/Library/Physics/
+
+# Unity XR cache
+**/Library/XR/
+
+# Unity Timeline cache
+**/Library/Timeline/
+
+# Unity Cinemachine cache
+**/Library/Cinemachine/
+
+# Unity PostProcessing cache
+**/Library/PostProcessing/
+
+# Unity TextMeshPro cache
+**/Library/TextMeshPro/
+
+# Unity Addressables build cache
+**/Library/com.unity.addressables/
+
+# Unity Build Cache
+**/Library/BuildCache/
+
+# Unity Asset Bundle cache
+**/Library/AssetBundles/
+
+# Unity Editor XR cache
+**/Library/Editor/XR/
+
+# Unity Cloud Build artifacts
+**/Builds/CloudBuild/
+
+# Unity Test Framework artifacts
+**/TestResults.xml
+**/TestResults.json
+
+# Unity Performance Testing
+**/Library/PerformanceTesting/
+
+# Unity UI Toolkit cache
+**/Library/UIElements/
+
+# Unity Shader Graph cache
+**/Library/ShaderGraph/
+
+# Unity Visual Effect Graph cache
+**/Library/VisualEffectGraph/
+
+# Unity Terrain cache
+**/Library/Terrain/
+
+# Unity Entities cache (DOTS)
+**/Library/Entities/
+
+# Unity Jobs cache
+**/Library/Jobs/
+
+# Unity Burst cache
+**/Library/Burst/
+
+# Unity Mathematics cache
+**/Library/Mathematics/
+
+# Unity Collections cache
+**/Library/Collections/
+
+# Unity Hybrid Renderer cache
+**/Library/HybridRenderer/
+
+# Unity Universal Render Pipeline cache
+**/Library/UniversalRenderPipeline/
+
+# Unity High Definition Render Pipeline cache
+**/Library/HighDefinitionRenderPipeline/
+
+# Unity Input System cache
+**/Library/InputSystem/
+
+# Unity Netcode cache
+**/Library/Netcode/
+
+# Unity Transport cache
+**/Library/Transport/
+
+# Unity Multiplayer Tools cache
+**/Library/MultiplayerTools/
+
+# Unity Mobile Notifications cache
+**/Library/MobileNotifications/
+
+# Unity Device Simulator cache
+**/Library/DeviceSimulator/
+
+# Unity Build Report files
+**/BuildReport/
+
+# Unity Asset Importer cache
+**/Library/AssetImport/
+
+# Unity Editor Compilation cache
+**/Library/Compilation/
+
+# Unity Editor Scene View cache
+**/Library/SceneView/
+
+# Unity Editor Game View cache
+**/Library/GameView/
+
+# Unity Editor Hierarchy cache
+**/Library/Hierarchy/
+
+# Unity Editor Inspector cache
+**/Library/Inspector/
+
+# Unity Editor Project Browser cache
+**/Library/ProjectBrowser/
+
+# Unity Editor Console cache
+**/Library/Console/
+
+# Unity Editor Package Manager cache
+**/Library/PackageManager/
+
+# Unity Editor Services cache
+**/Library/Services/
+
+# Unity Editor Collaboration cache
+**/Library/Collaboration/
+
+# Unity Editor Version Control cache
+**/Library/VersionControl/
+
+# Unity Editor Analytics cache (additional)
+**/Library/Editor/Analytics/
+
+# Unity Editor Diagnostic cache
+**/Library/Editor/Diagnostic/
+
+# Unity Editor Performance cache
+**/Library/Editor/Performance/
+
+# Unity Editor UI cache
+**/Library/Editor/UI/
+
+# Unity Editor Window Layouts (personal)
+**/Library/Editor/WindowLayouts/
+
+# Unity Editor Preferences (personal)
+**/Library/Editor/Preferences/
+
+# Unity Editor Shortcuts (personal)
+**/Library/Editor/Shortcuts/
+
+# Unity Editor Toolbars (personal)
+**/Library/Editor/Toolbars/
+
+# Unity Editor Menus (personal)
+**/Library/Editor/Menus/
+
+# Unity Asset Database temp files
+**/Library/temp/
+
+# Unity Build temp files
+**/Temp/Build/
+
+# Unity Import temp files
+**/Temp/Import/
+
+# Unity Export temp files
+**/Temp/Export/
+
+# Unity Cache temp files
+**/Temp/Cache/
+
+# Unity Shader temp files
+**/Temp/Shader/
+
+# Unity Asset temp files
+**/Temp/Asset/
+
+# Unity Scene temp files
+**/Temp/Scene/
+
+# Unity Prefab temp files
+**/Temp/Prefab/
+
+# Unity Script temp files
+**/Temp/Script/
+
+# Unity Texture temp files
+**/Temp/Texture/
+
+# Unity Audio temp files
+**/Temp/Audio/
+
+# Unity Video temp files
+**/Temp/Video/
+
+# Unity Animation temp files
+**/Temp/Animation/
+
+# Unity Material temp files
+**/Temp/Material/
+
+# Unity Physics temp files
+**/Temp/Physics/
+
+# Unity UI temp files
+**/Temp/UI/
+
+# Unity XR temp files
+**/Temp/XR/
+
+# Unity Timeline temp files
+**/Temp/Timeline/
+
+# Unity Cinemachine temp files
+**/Temp/Cinemachine/
+
+# Unity PostProcessing temp files
+**/Temp/PostProcessing/
+
+# Unity TextMeshPro temp files
+**/Temp/TextMeshPro/
+
+# Unity Addressables temp files
+**/Temp/com.unity.addressables/
+
+# Unity Build temp files (additional)
+**/Temp/BuildCache/
+
+# Unity Asset Bundle temp files
+**/Temp/AssetBundles/
+
+# Unity Editor XR temp files
+**/Temp/Editor/XR/
+
+# Unity Cloud Build temp files
+**/Temp/CloudBuild/
+
+# Unity Test Framework temp files
+**/Temp/TestResults/
+
+# Unity Performance Testing temp files
+**/Temp/PerformanceTesting/
+
+# Unity UI Toolkit temp files
+**/Temp/UIElements/
+
+# Unity Shader Graph temp files
+**/Temp/ShaderGraph/
+
+# Unity Visual Effect Graph temp files
+**/Temp/VisualEffectGraph/
+
+# Unity Terrain temp files
+**/Temp/Terrain/
+
+# Unity Entities temp files (DOTS)
+**/Temp/Entities/
+
+# Unity Jobs temp files
+**/Temp/Jobs/
+
+# Unity Burst temp files
+**/Temp/Burst/
+
+# Unity Mathematics temp files
+**/Temp/Mathematics/
+
+# Unity Collections temp files
+**/Temp/Collections/
+
+# Unity Hybrid Renderer temp files
+**/Temp/HybridRenderer/
+
+# Unity Universal Render Pipeline temp files
+**/Temp/UniversalRenderPipeline/
+
+# Unity High Definition Render Pipeline temp files
+**/Temp/HighDefinitionRenderPipeline/
+
+# Unity Input System temp files
+**/Temp/InputSystem/
+
+# Unity Netcode temp files
+**/Temp/Netcode/
+
+# Unity Transport temp files
+**/Temp/Transport/
+
+# Unity Multiplayer Tools temp files
+**/Temp/MultiplayerTools/
+
+# Unity Mobile Notifications temp files
+**/Temp/MobileNotifications/
+
+# Unity Device Simulator temp files
+**/Temp/DeviceSimulator/
+
+# Unity Build Report temp files
+**/Temp/BuildReport/
+
+# Unity Asset Importer temp files
+**/Temp/AssetImport/
+
+# Unity Editor Compilation temp files
+**/Temp/Compilation/
+
+# Unity Editor Scene View temp files
+**/Temp/SceneView/
+
+# Unity Editor Game View temp files
+**/Temp/GameView/
+
+# Unity Editor Hierarchy temp files
+**/Temp/Hierarchy/
+
+# Unity Editor Inspector temp files
+**/Temp/Inspector/
+
+# Unity Editor Project Browser temp files
+**/Temp/ProjectBrowser/
+
+# Unity Editor Console temp files
+**/Temp/Console/
+
+# Unity Editor Package Manager temp files
+**/Temp/PackageManager/
+
+# Unity Editor Services temp files
+**/Temp/Services/
+
+# Unity Editor Collaboration temp files
+**/Temp/Collaboration/
+
+# Unity Editor Version Control temp files
+**/Temp/VersionControl/
+
+# Unity Editor Analytics temp files (additional)
+**/Temp/Editor/Analytics/
+
+# Unity Editor Diagnostic temp files
+**/Temp/Editor/Diagnostic/
+
+# Unity Editor Performance temp files
+**/Temp/Editor/Performance/
+
+# Unity Editor UI temp files
+**/Temp/Editor/UI/
+
+# Unity Editor Window Layouts temp files (personal)
+**/Temp/Editor/WindowLayouts/
+
+# Unity Editor Preferences temp files (personal)
+**/Temp/Editor/Preferences/
+
+# Unity Editor Shortcuts temp files (personal)
+**/Temp/Editor/Shortcuts/
+
+# Unity Editor Toolbars temp files (personal)
+**/Temp/Editor/Toolbars/
+
+# Unity Editor Menus temp files (personal)
+**/Temp/Editor/Menus/
+
+# Unity Package Manager temp files
+**/Temp/PackageManager/
+
+# Unity Editor temp files (general)
+**/Temp/Editor/
+
+# Unity Build artifacts (additional extensions)
+*.xap
+*.appx
+*.msix
+*.flatpak
+*.snap
+*.deb
+*.rpm
+
+# Unity Documentation build artifacts
+**/Documentation~/

@@ -1,0 +1,19 @@
+{
+  "name": "com.unity.openfeature",
+  "version": "1.0.0",
+  "displayName": "Unity OpenFeature SDK",
+  "description": "Unity-compatible OpenFeature SDK for feature flag management",
+  "unity": "2020.3",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.0.2"
+  },
+  "keywords": [
+    "openfeature",
+    "feature-flags",
+    "unity"
+  ],
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com"
+  }
+}

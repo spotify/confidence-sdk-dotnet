@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>UnityLibrary</AssemblyName>
+    <RootNamespace>UnityLibrary</RootNamespace>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="OpenFeature" Version="1.4.0" />
+  </ItemGroup>
+</Project>
