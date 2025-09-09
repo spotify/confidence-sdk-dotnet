@@ -4,7 +4,7 @@ namespace UnityOpenFeature.Core
     {
         public T Value { get; set; }
         public string FlagKey { get; set; }
-        public Reason Reason { get; set; } = Reason.Static;
+        public Reason Reason { get; set; } = Reason.RESOLVE_REASON_UNSPECIFIED;
         public string Variant { get; set; }
         public ErrorCode ErrorCode { get; set; } = ErrorCode.None;
         public string ErrorMessage { get; set; }
@@ -13,7 +13,7 @@ namespace UnityOpenFeature.Core
 
         public static ResolutionDetails<T> Error(string flagKey, T defaultValue, ErrorCode errorCode, string errorMessage)
         {
-            return new ResolutionDetails<T>(defaultValue, flagKey) { Reason = Reason.Error, ErrorCode = errorCode, ErrorMessage = errorMessage };
+            return new ResolutionDetails<T>(defaultValue, flagKey) { Reason = Reason.ERROR, ErrorCode = errorCode, ErrorMessage = errorMessage };
         }
     }
 }

@@ -365,10 +365,15 @@ namespace UnityOpenFeature.Providers
         {
             return resolveReason switch
             {
-                "MATCH" => Reason.TargetingMatch,
-                "NO_MATCH" => Reason.Default,
-                "ERROR" => Reason.Error,
-                _ => Reason.Unknown
+                "RESOLVE_REASON_MATCH" => Reason.RESOLVE_REASON_MATCH,
+                "RESOLVE_REASON_STALE" => Reason.RESOLVE_REASON_STALE,
+                "RESOLVE_REASON_NO_SEGMENT_MATCH" => Reason.RESOLVE_REASON_NO_SEGMENT_MATCH,
+                "RESOLVE_REASON_NO_TREATMENT_MATCH" => Reason.RESOLVE_REASON_NO_TREATMENT_MATCH,
+                "RESOLVE_REASON_TARGETING_KEY_ERROR" => Reason.RESOLVE_REASON_TARGETING_KEY_ERROR,
+                "RESOLVE_REASON_FLAG_ARCHIVED" => Reason.RESOLVE_REASON_FLAG_ARCHIVED,
+                "DEFAULT" => Reason.DEFAULT,
+                "ERROR" => Reason.ERROR,
+                _ => Reason.RESOLVE_REASON_UNSPECIFIED
             };
         }
 
