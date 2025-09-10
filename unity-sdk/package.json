@@ -12,6 +12,11 @@
     "feature-flags",
     "unity"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spotify/confidence-sdk-dotnet.git",
+    "directory": "unity-sdk"
+  },
   "author": {
     "name": "Vahid Torkaman",
     "email": "vahidt@spotify.com"
