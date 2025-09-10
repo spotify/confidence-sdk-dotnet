@@ -70,13 +70,12 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.openfeature": {
-      "version": "https://github.com/spotify/confidence-sdk-dotnet.git?path=unity-sdk",
+      "version": "file:../../../../unity-sdk",
       "depth": 0,
-      "source": "git",
+      "source": "local",
       "dependencies": {
         "com.unity.nuget.newtonsoft-json": "3.0.2"
-      },
-      "hash": "36500a150ed73ff2dfc891b8f392d3603b1e6dad"
+      }
     },
     "com.unity.render-pipelines.core": {
       "version": "14.0.12",

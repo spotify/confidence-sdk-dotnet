@@ -4,13 +4,25 @@
 echo "🔨 Testing Unity OpenFeature SDK compilation..."
 
 # Unity Editor path
-UNITY_PATH="/Applications/Unity/Hub/Editor/2022.3.62f1/Unity.app/Contents/MacOS/Unity"
+# Allow override via environment variable for CI environments
+# Try unity-editor first (available after unity-builder action), then fallback to local macOS path
+if command -v unity-editor >/dev/null 2>&1; then
+    UNITY_PATH="unity-editor"
+elif [ -n "$UNITY_PATH" ]; then
+    UNITY_PATH="$UNITY_PATH"
+else
+    UNITY_PATH="/Applications/Unity/Hub/Editor/2022.3.62f1/Unity.app/Contents/MacOS/Unity"
+fi
 
 # Check if Unity is installed
-if [ ! -f "$UNITY_PATH" ]; then
+if ! command -v "$UNITY_PATH" >/dev/null 2>&1 && [ ! -f "$UNITY_PATH" ]; then
     echo "❌ Unity 2022.3.62f1 not found. Please install Unity or update the path."
+    echo "   Tried: $UNITY_PATH"
+    echo "   Available commands: $(which unity-editor 2>/dev/null || echo 'unity-editor not found')"
     exit 1
 fi
+
+echo "✅ Using Unity at: $UNITY_PATH"
 
 # Create test project directory
 TEST_DIR="../test-unity-project"

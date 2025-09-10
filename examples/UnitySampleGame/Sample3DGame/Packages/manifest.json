@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.unity.openfeature": "https://github.com/spotify/confidence-sdk-dotnet.git?path=unity-sdk",
+    "com.unity.openfeature": "file:../../../../unity-sdk",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.collab-proxy": "2.9.3",
     "com.unity.ide.rider": "3.0.36",

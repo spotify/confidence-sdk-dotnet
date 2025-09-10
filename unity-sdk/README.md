@@ -8,6 +8,10 @@ A Unity-compatible implementation of the OpenFeature specification for feature f
 
 This SDK provides a Unity wrapper around the OpenFeature standard, enabling developers to use feature flags in their Unity projects. It integrates with the Confidence platform for flag evaluation and management.
 
+## Usage
+The unity-sdk can be added to the package.json file like:
+https://github.com/spotify/confidence-sdk-dotnet.git?path=unity-sdk
+
 ## Features
 
 - Unity-compatible OpenFeature implementation
