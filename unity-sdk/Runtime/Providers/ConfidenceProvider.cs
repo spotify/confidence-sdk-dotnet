@@ -61,7 +61,6 @@ namespace UnityOpenFeature.Providers
                     // Store resolve token for apply requests
                     if (!string.IsNullOrEmpty(responseData.resolveToken))
                     {
-                        Debug.Log("resolveToken is not null" + responseData.resolveToken);
                         this.resolveToken = responseData.resolveToken;
                     }
 
@@ -371,7 +370,6 @@ namespace UnityOpenFeature.Providers
                     return null;
                 }
             }
-            Debug.Log("currentValue is not null for flagKey: " + flagKey + " and currentValue: " + JsonConvert.SerializeObject(currentValue));
             return currentValue;
         }
 
