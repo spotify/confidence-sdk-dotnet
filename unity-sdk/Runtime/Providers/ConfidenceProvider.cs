@@ -29,7 +29,7 @@ namespace UnityOpenFeature.Providers
             InitializeDictionary();
         }
 
-        public async void FetchAndActivate(List<string> flagKeys, Action<bool, string> callback = null)
+        private async void FetchAndActivate(Action<bool, string> callback = null)
         {
             if (string.IsNullOrEmpty(clientSecret))
             {
@@ -38,16 +38,9 @@ namespace UnityOpenFeature.Providers
                 return;
             }
 
-            if (flagKeys == null || flagKeys.Count == 0)
-            {
-                Debug.LogWarning("No flag keys provided for fetchAndActivate");
-                callback?.Invoke(false, "No flag keys provided");
-                return;
-            }
-
             var evalContext = GetEvaluationContext();
 
-            await apiClient.ResolveFlagsAsync(flagKeys, evalContext, (responseData, error) =>
+            await apiClient.ResolveFlagsAsync(new List<string>(), evalContext, (responseData, error) =>
             {
                 if (error != null)
                 {
@@ -114,17 +107,43 @@ namespace UnityOpenFeature.Providers
             Debug.Log("ConfidenceProvider shutdown");
         }
 
-        public void Initialize(EvaluationContext context)
+        public void Initialize(Action<bool, string> callback = null)
         {
             InitializeDictionary();
-            IsReady = true;
-            Debug.Log($"ConfidenceProvider initialized with client secret");
+            FetchAndActivate((success, error) =>
+            {
+                IsReady = success;
+                callback?.Invoke(success, error);
+                if (success)
+                {
+                    Debug.Log($"ConfidenceProvider initialized and flags fetched successfully");
+                }
+                else
+                {
+                    Debug.LogError($"ConfidenceProvider initialized but failed to fetch flags: {error}");
+                }
+            });
+        }
+
+        public void OnContextSet(EvaluationContext oldContext, EvaluationContext newContext, Action<bool, string> callback = null)
+        {
+                FetchAndActivate((success, error) =>
+                {
+                    if (success)
+                    {
+                        Debug.Log($"Context updated and flags refreshed successfully");
+                    }
+                    else
+                    {
+                        Debug.LogError($"Context updated but failed to refresh flags: {error}");
+                    }
+                    callback?.Invoke(success, error);
+                });
         }
 
         private void InitializeDictionary()
         {
             flagDictionary.Clear();
-            // Initialize with any default flags if needed
         }
 
         public void shutdown() {
@@ -365,15 +384,15 @@ namespace UnityOpenFeature.Providers
         {
             return resolveReason switch
             {
-                "RESOLVE_REASON_MATCH" => Reason.RESOLVE_REASON_MATCH,
-                "RESOLVE_REASON_STALE" => Reason.RESOLVE_REASON_STALE,
-                "RESOLVE_REASON_NO_SEGMENT_MATCH" => Reason.RESOLVE_REASON_NO_SEGMENT_MATCH,
-                "RESOLVE_REASON_NO_TREATMENT_MATCH" => Reason.RESOLVE_REASON_NO_TREATMENT_MATCH,
-                "RESOLVE_REASON_TARGETING_KEY_ERROR" => Reason.RESOLVE_REASON_TARGETING_KEY_ERROR,
-                "RESOLVE_REASON_FLAG_ARCHIVED" => Reason.RESOLVE_REASON_FLAG_ARCHIVED,
-                "DEFAULT" => Reason.DEFAULT,
-                "ERROR" => Reason.ERROR,
-                _ => Reason.RESOLVE_REASON_UNSPECIFIED
+                "RESOLVE_REASON_MATCH" => UnityOpenFeature.Core.Reason.RESOLVE_REASON_MATCH,
+                "RESOLVE_REASON_STALE" => UnityOpenFeature.Core.Reason.RESOLVE_REASON_STALE,
+                "RESOLVE_REASON_NO_SEGMENT_MATCH" => UnityOpenFeature.Core.Reason.RESOLVE_REASON_NO_SEGMENT_MATCH,
+                "RESOLVE_REASON_NO_TREATMENT_MATCH" => UnityOpenFeature.Core.Reason.RESOLVE_REASON_NO_TREATMENT_MATCH,
+                "RESOLVE_REASON_TARGETING_KEY_ERROR" => UnityOpenFeature.Core.Reason.RESOLVE_REASON_TARGETING_KEY_ERROR,
+                "RESOLVE_REASON_FLAG_ARCHIVED" => UnityOpenFeature.Core.Reason.RESOLVE_REASON_FLAG_ARCHIVED,
+                "DEFAULT" => UnityOpenFeature.Core.Reason.DEFAULT,
+                "ERROR" => UnityOpenFeature.Core.Reason.ERROR,
+                _ => UnityOpenFeature.Core.Reason.RESOLVE_REASON_UNSPECIFIED
             };
         }
 

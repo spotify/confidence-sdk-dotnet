@@ -23,11 +23,18 @@ namespace UnityOpenFeature.Providers
             if (existing != null) existing.Value = value?.ToString() ?? ""; else flags.Add(new FeatureFlag { Key = key, Value = value?.ToString() ?? "" });
         }
 
-        public void Initialize(EvaluationContext context)
+        public void Initialize(Action<bool, string> callback = null)
         {
             InitializeDictionary();
             IsReady = true;
+            callback?.Invoke(true, "InMemoryProvider initialized");
             Debug.Log($"InMemoryProvider initialized with {flags.Count} flags");
+        }
+
+        public void OnContextSet(EvaluationContext oldContext, EvaluationContext newContext, Action<bool, string> callback = null)
+        {
+            // Empty implementation for InMemoryProvider - context changes don't require fetching
+            callback?.Invoke(true, "InMemoryProvider context updated");
         }
 
         public void Shutdown()

@@ -21,24 +21,25 @@ namespace UnityOpenFeature.Core
 
         private OpenFeatureAPI() { }
 
-        public void SetProvider(IFeatureProvider newProvider)
+        public void SetProvider(IFeatureProvider newProvider, Action<bool, string> callback = null)
         {
             if (newProvider == null) { Debug.LogError("Provider cannot be null"); return; }
             try
             {
                 provider?.Shutdown();
                 provider = newProvider;
-                provider.Initialize(evaluationContext);
+                provider.Initialize(callback);
                 Debug.Log($"Provider set to: {provider.Name}");
                 ProviderChanged?.Invoke(provider);
             }
             catch (Exception ex) { Debug.LogError($"Failed to set provider: {ex.Message}"); }
         }
 
-        public void SetEvaluationContext(EvaluationContext context)
+        public void SetEvaluationContext(EvaluationContext context, Action<bool, string> callback = null)
         {
+            var oldContext = evaluationContext;
             evaluationContext = context ?? new EvaluationContext();
-            provider?.Initialize(evaluationContext);
+            provider?.OnContextSet(oldContext, evaluationContext, callback);
         }
 
         public IFeatureClient GetClient(string domain = "")

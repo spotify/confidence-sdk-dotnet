@@ -7,8 +7,8 @@ namespace UnityOpenFeature.Core
     {
         IFeatureProvider Provider { get; }
         EvaluationContext EvaluationContext { get; }
-        void SetProvider(IFeatureProvider provider);
-        void SetEvaluationContext(EvaluationContext context);
+        void SetProvider(IFeatureProvider provider, Action<bool, string> callback = null);
+        void SetEvaluationContext(EvaluationContext context, Action<bool, string> callback = null);
         IFeatureClient GetClient(string domain = "");
         event Action<IFeatureProvider> ProviderChanged;
     }

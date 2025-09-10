@@ -1,3 +1,5 @@
+using System;
+
 namespace UnityOpenFeature.Core
 {
     public interface IFeatureProvider
@@ -9,7 +11,8 @@ namespace UnityOpenFeature.Core
         ResolutionDetails<int> ResolveIntegerValue(string flagKey, int defaultValue);
         ResolutionDetails<float> ResolveFloatValue(string flagKey, float defaultValue);
         ResolutionDetails<T> ResolveObjectValue<T>(string flagKey, T defaultValue);
-        void Initialize(EvaluationContext context);
+        void Initialize(Action<bool, string> callback = null);
+        void OnContextSet(EvaluationContext oldContext, EvaluationContext newContext, Action<bool, string> callback = null);
         void Shutdown();
     }
 }

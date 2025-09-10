@@ -37,10 +37,25 @@ public class PlayerController : MonoBehaviour
                 return;
             }
             Debug.Log("OpenFeatureAPI.Instance is available");
-            apiInstance.SetProvider(provider);
             apiInstance.SetEvaluationContext(new EvaluationContext().SetAttribute("user_id", "fdema"));
             client = apiInstance.GetClient();
-            Debug.Log("OpenFeature provider initialized with boolean flags");
+
+            apiInstance.SetProvider(provider, (success, error) =>
+            {
+                if (!success)
+                {
+                    Debug.LogError($"Error initializing provider and fetching flags: {error}");
+                    return;
+                }
+                Debug.Log($"Provider initialized and flags fetched successfully!: {success}");
+                var value = client.GetBooleanDetails("vahid-test.enabled", false);
+                Debug.Log("Flag value: " + value.Value);
+                Debug.Log("Flag variant: " + value.Variant);
+                Debug.Log("Error code: " + value.ErrorCode);
+                Debug.Log("Error message: " + value.ErrorMessage);
+            });
+
+            Debug.Log("OpenFeature provider initialization started");
         }
         catch (Exception ex)
         {
@@ -48,22 +63,6 @@ public class PlayerController : MonoBehaviour
             Debug.LogError($"Exception type: {ex.GetType().Name}");
             client = null;
         }
-
-        // Set up boolean flags
-        provider.FetchAndActivate(new List<string> { "vahid-test" }, (success, error) =>
-        {
-            if (!success)
-            {
-                Debug.LogError($"Error fetching and activating flags: {error}");
-                return;
-            }
-            Debug.Log($"Flags fetched and activated successfully!: {success}");
-            var value = client.GetBooleanDetails("vahid-test.enabled", false);
-            Debug.Log("Flag value: " + value.Value);
-            Debug.Log("Flag variant: " + value.Variant);
-            Debug.Log("Error code: " + value.ErrorCode);
-            Debug.Log("Error message: " + value.ErrorMessage);
-        });
     }
     
     void Update()
