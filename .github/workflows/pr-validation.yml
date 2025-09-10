@@ -29,3 +29,104 @@ jobs:
     
     - name: Run tests on .NET 8.0
       run: dotnet test --no-build --verbosity normal --framework net8.0
+
+    - name: Setup Unity
+      uses: webbertakken/unity-test-runner@v2
+      with:
+        unityVersion: 2022.3.62f1
+
+    - name: Test Unity SDK compilation
+      run: |
+        cd unity-sdk
+        # Create a CI-compatible version of the build test
+        TEST_DIR="../test-unity-project"
+        echo "📁 Creating test project at $TEST_DIR..."
+
+        # Clean up previous test if exists
+        rm -rf "$TEST_DIR"
+        mkdir -p "$TEST_DIR"
+
+        # Create Unity project
+        echo "🎮 Creating Unity project..."
+        unity-editor -createProject "$(realpath $TEST_DIR)" -quit
+
+        # Add our package to the project
+        echo "📦 Adding Unity OpenFeature package..."
+        cat > "$TEST_DIR/Packages/manifest.json" << EOF
+        {
+          "dependencies": {
+            "com.unity.openfeature": "file:../../unity-sdk",
+            "com.unity.toolchain.macos-arm64-linux-x86_64": "2.0.4",
+            "com.unity.modules.ai": "1.0.0",
+            "com.unity.modules.androidjni": "1.0.0",
+            "com.unity.modules.animation": "1.0.0",
+            "com.unity.modules.assetbundle": "1.0.0",
+            "com.unity.modules.audio": "1.0.0",
+            "com.unity.modules.cloth": "1.0.0",
+            "com.unity.modules.director": "1.0.0",
+            "com.unity.modules.imageconversion": "1.0.0",
+            "com.unity.modules.imgui": "1.0.0",
+            "com.unity.modules.jsonserialize": "1.0.0",
+            "com.unity.modules.particlesystem": "1.0.0",
+            "com.unity.modules.physics": "1.0.0",
+            "com.unity.modules.physics2d": "1.0.0",
+            "com.unity.modules.screencapture": "1.0.0",
+            "com.unity.modules.terrain": "1.0.0",
+            "com.unity.modules.terrainphysics": "1.0.0",
+            "com.unity.modules.tilemap": "1.0.0",
+            "com.unity.modules.ui": "1.0.0",
+            "com.unity.modules.uielements": "1.0.0",
+            "com.unity.modules.umbra": "1.0.0",
+            "com.unity.modules.unityanalytics": "1.0.0",
+            "com.unity.modules.unitywebrequest": "1.0.0",
+            "com.unity.modules.unitywebrequestassetbundle": "1.0.0",
+            "com.unity.modules.unitywebrequestaudio": "1.0.0",
+            "com.unity.modules.unitywebrequesttexture": "1.0.0",
+            "com.unity.modules.unitywebrequestwww": "1.0.0",
+            "com.unity.modules.vehicles": "1.0.0",
+            "com.unity.modules.video": "1.0.0",
+            "com.unity.modules.vr": "1.0.0",
+            "com.unity.modules.wind": "1.0.0",
+            "com.unity.modules.xr": "1.0.0"
+          }
+        }
+        EOF
+
+        # Build and test compilation
+        echo "🔧 Testing compilation..."
+        LOG_FILE="$TEST_DIR/build.log"
+        unity-editor -batchmode -quit -projectPath "$(realpath $TEST_DIR)" -logFile "$LOG_FILE"
+
+        # Check results
+        if [ $? -eq 0 ]; then
+            echo "✅ BUILD SUCCESSFUL! Unity OpenFeature SDK compiled without errors."
+            echo "📝 Build log saved to: $LOG_FILE"
+
+            # Show any warnings (but not errors since build was successful)
+            if grep -q "warning" "$LOG_FILE"; then
+                echo "⚠️  Warnings found:"
+                grep "warning" "$LOG_FILE" | head -5
+            fi
+        else
+            echo "❌ BUILD FAILED! Compilation errors found."
+            echo "📝 Error details:"
+            grep -A 3 -B 3 "error" "$LOG_FILE" | head -20
+            exit 1
+        fi
+
+        # Clean up test project
+        echo "🧹 Cleaning up test project..."
+        rm -rf "$TEST_DIR"
+
+        echo "🎉 Unity OpenFeature SDK build test completed successfully!"
+
+    - name: Build Sample3DGame
+      run: |
+        cd examples/UnitySampleGame/Sample3DGame
+        unity-editor -batchmode -quit -projectPath . -buildTarget StandaloneWindows64 -buildWindows64Player ../Builds/Sample3DGame.exe -logFile ../build.log
+        if [ $? -ne 0 ]; then
+          echo "❌ Sample3DGame build failed!"
+          cat ../build.log
+          exit 1
+        fi
+        echo "✅ Sample3DGame built successfully!"
