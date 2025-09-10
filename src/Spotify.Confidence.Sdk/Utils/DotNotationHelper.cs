@@ -11,8 +11,9 @@ internal static class DotNotationHelper
     /// <summary>
     /// Parses a dot-notation string into flag name and property path.
     /// </summary>
-    /// <param name="flagKey">The flag key that may contain dot notation (e.g., "flag.property.subproperty")</param>
-    /// <returns>A tuple containing the base flag name and the property path</returns>
+
+    /// <param name="flagKey">The flag key that may contain dot notation (e.g., "flag.property.subproperty").</param>
+    /// <returns>A tuple containing the base flag name and the property path.</returns>
     public static (string FlagName, string[] PropertyPath) ParseDotNotation(string flagKey)
     {
         if (string.IsNullOrEmpty(flagKey))
@@ -30,16 +31,17 @@ internal static class DotNotationHelper
         // First part is the flag name, rest is the property path
         var flagName = parts[0];
         var propertyPath = parts.Skip(1).ToArray();
-        
+
         return (flagName, propertyPath);
     }
 
     /// <summary>
     /// Navigates through nested object properties using a property path.
     /// </summary>
-    /// <param name="value">The starting value (typically flag.Value or the "value" property)</param>
-    /// <param name="propertyPath">Array of property names to navigate through</param>
-    /// <returns>The value at the end of the property path, or null if not found</returns>
+
+    /// <param name="value">The starting value (typically flag.Value or the "value" property).</param>
+    /// <param name="propertyPath">Array of property names to navigate through.</param>
+    /// <returns>The value at the end of the property path, or null if not found.</returns>
     public static object? NavigateToProperty(object? value, string[] propertyPath)
     {
         if (value == null || propertyPath.Length == 0)
@@ -64,9 +66,10 @@ internal static class DotNotationHelper
     /// <summary>
     /// Gets a property value from an object, handling both Dictionary and JsonElement types.
     /// </summary>
-    /// <param name="obj">The object to get the property from</param>
-    /// <param name="propertyName">The name of the property to get</param>
-    /// <returns>The property value, or null if not found</returns>
+
+    /// <param name="obj">The object to get the property from.</param>
+    /// <param name="propertyName">The name of the property to get.</param>
+    /// <returns>The property value, or null if not found.</returns>
     private static object? GetPropertyValue(object? obj, string propertyName)
     {
         if (obj == null)
@@ -81,7 +84,7 @@ internal static class DotNotationHelper
         }
 
         // Handle JsonElement
-        if (obj is JsonElement jsonElement && 
+        if (obj is JsonElement jsonElement &&
             jsonElement.ValueKind == JsonValueKind.Object &&
             jsonElement.TryGetProperty(propertyName, out var property))
         {
@@ -100,9 +103,10 @@ internal static class DotNotationHelper
     /// <summary>
     /// Extracts the appropriate value from a ResolvedFlag, handling both dot-notation and regular flags.
     /// </summary>
-    /// <param name="flagValue">The Value dictionary from a ResolvedFlag</param>
-    /// <param name="propertyPath">The property path to navigate (empty for regular flags)</param>
-    /// <returns>The extracted value</returns>
+
+    /// <param name="flagValue">The Value dictionary from a ResolvedFlag.</param>
+    /// <param name="propertyPath">The property path to navigate (empty for regular flags).</param>
+    /// <returns>The extracted value.</returns>
     public static object? ExtractFlagValue(Dictionary<string, object> flagValue, string[] propertyPath)
     {
         // First, try to get the "value" key if it exists (current behavior)
@@ -121,26 +125,27 @@ internal static class DotNotationHelper
     /// <summary>
     /// Extracts and converts a typed value from a ResolvedFlag using dot-notation.
     /// </summary>
-    /// <typeparam name="T">The target type to convert the value to</typeparam>
-    /// <param name="flag">The resolved flag</param>
-    /// <param name="flagKey">The original flag key (may contain dot-notation)</param>
-    /// <param name="defaultValue">The default value to return if extraction fails</param>
-    /// <param name="jsonOptions">JSON serializer options for complex type conversion</param>
-    /// <returns>A tuple containing the typed value and any error message</returns>
+
+    /// <typeparam name="T">The target type to convert the value to.</typeparam>
+    /// <param name="flag">The resolved flag.</param>
+    /// <param name="flagKey">The original flag key (may contain dot-notation).</param>
+    /// <param name="defaultValue">The default value to return if extraction fails.</param>
+    /// <param name="jsonOptions">JSON serializer options for complex type conversion.</param>
+    /// <returns>A tuple containing the typed value and any error message.</returns>
     public static (T Value, string? ErrorMessage) ExtractTypedValue<T>(
-        ResolvedFlag flag, 
-        string flagKey, 
-        T defaultValue, 
+        ResolvedFlag flag,
+        string flagKey,
+        T defaultValue,
         JsonSerializerOptions? jsonOptions = null)
     {
         try
         {
             // Parse dot-notation to get property path
             var (_, propertyPath) = ParseDotNotation(flagKey);
-            
+
             // Extract the raw value
             var value = ExtractFlagValue(flag.Value, propertyPath);
-            
+
             if (value == null && propertyPath.Length > 0)
             {
                 return (defaultValue, $"Property path '{string.Join(".", propertyPath)}' not found in flag '{flag.Flag}'");
@@ -159,11 +164,12 @@ internal static class DotNotationHelper
     /// <summary>
     /// Converts a value to the target type, handling JsonElement and other conversions.
     /// </summary>
-    /// <typeparam name="T">The target type</typeparam>
-    /// <param name="value">The value to convert</param>
-    /// <param name="defaultValue">The default value if conversion fails</param>
-    /// <param name="jsonOptions">JSON serializer options</param>
-    /// <returns>The converted value</returns>
+
+    /// <typeparam name="T">The target type.</typeparam>
+    /// <param name="value">The value to convert.</param>
+    /// <param name="defaultValue">The default value if conversion fails.</param>
+    /// <param name="jsonOptions">JSON serializer options.</param>
+    /// <returns>The converted value.</returns>
     private static T ConvertToType<T>(object? value, T defaultValue, JsonSerializerOptions? jsonOptions = null)
     {
         if (value == null)

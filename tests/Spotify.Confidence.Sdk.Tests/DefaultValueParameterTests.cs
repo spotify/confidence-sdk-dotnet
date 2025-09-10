@@ -4,12 +4,12 @@ using System.Net.Http;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
 using Spotify.Confidence.Sdk;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
-using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace Spotify.Confidence.Sdk.Tests;

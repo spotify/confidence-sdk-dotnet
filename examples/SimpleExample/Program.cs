@@ -31,7 +31,7 @@ try
         TimeoutSeconds = 30,
         LogLevel = LogLevel.Information // Configure SDK logging level (defaults to Information)
     };
-    
+
     var confidenceClient = new ConfidenceClient(confidenceOptions);
     // Note: SDK will create its own console logger with the configured LogLevel
     // You can still pass your own logger if you want custom formatting or destinations
@@ -130,22 +130,22 @@ static async Task DemoDotNotationFeature(ConfidenceClient client, ConfidenceCont
 
         // Now demonstrate dot-notation: extract individual properties directly
         Console.WriteLine("🔍 Using dot-notation to extract specific properties:");
-        
+
         // Extract color directly using dot-notation
         var colorResult = await client.EvaluateStringFlagAsync("hawkflag.color", "defaultColor", context);
         Console.WriteLine($"   hawkflag.color = \"{colorResult.Value}\" (reason: {colorResult.Reason})");
-        
+
         // Extract message directly using dot-notation
         var messageResult = await client.EvaluateStringFlagAsync("hawkflag.message", "defaultMessage", context);
         Console.WriteLine($"   hawkflag.message = \"{messageResult.Value}\" (reason: {messageResult.Reason})");
-        
+
         Console.WriteLine();
         Console.WriteLine("✨ Benefits of dot-notation:");
         Console.WriteLine("   • Type-safe: Get the exact type you need (string, bool, number)");
         Console.WriteLine("   • Clean code: No manual dictionary navigation");
         Console.WriteLine("   • Default values: Built-in fallback if property doesn't exist");
         Console.WriteLine("   • Performance: Direct extraction without deserializing entire structure");
-        
+
         // Demo with hypothetical nested structure
         Console.WriteLine();
         Console.WriteLine("🏗️  Example with deeper nesting (would work with appropriate flag structure):");

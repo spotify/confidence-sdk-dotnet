@@ -181,13 +181,13 @@ public class DotNotationTests
         Assert.NotNull(result.Value);
         var structure = result.Value.AsStructure;
         Assert.NotNull(structure);
-        
+
         // Verify the structure contains expected values
         var structureDict = structure?.AsDictionary() ?? ImmutableDictionary<string, Value>.Empty;
         Assert.True((bool)structureDict["enabled"].AsObject!);
         Assert.Equal(25, Convert.ToInt32(structureDict["rolloutPercentage"].AsObject!));
         Assert.Equal("New experimental feature", (string)structureDict["description"].AsObject!);
-        
+
         Assert.Equal("MATCH", result.Reason);
         Assert.Equal("experiment", result.Variant);
     }
@@ -253,9 +253,9 @@ public class DotNotationTests
         _mockClient.Verify(c => c.EvaluateBooleanFlagAsync(
             flagKey, // Should pass the exact flag key including dots
             defaultValue,
-            It.Is<ConfidenceContext?>(ctx => 
-                ctx != null && 
-                ctx.Attributes.ContainsKey("targeting_key") && 
+            It.Is<ConfidenceContext?>(ctx =>
+                ctx != null &&
+                ctx.Attributes.ContainsKey("targeting_key") &&
                 ctx.Attributes["targeting_key"].Equals("user123") &&
                 ctx.Attributes.ContainsKey("custom_attr") &&
                 ctx.Attributes["custom_attr"].Equals("value")),

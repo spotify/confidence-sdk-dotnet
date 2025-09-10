@@ -5,8 +5,8 @@ using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
-using Polly.Extensions.Http;
 using Polly;
+using Polly.Extensions.Http;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
 using Xunit;
@@ -518,13 +518,13 @@ public class DotNotationIntegrationTests : IDisposable
         // Assert
         Assert.True(result.IsSuccess);
         var resultElement = Assert.IsType<JsonElement>(result.Value);
-        
+
         // Verify all numeric types are accessible
         Assert.Equal(42, resultElement.GetProperty("count").GetInt32());
         Assert.Equal(9223372036854775807L, resultElement.GetProperty("totalSize").GetInt64());
         Assert.Equal(123.456, resultElement.GetProperty("avgLatency").GetDouble(), precision: 3);
         Assert.Equal(999.99m, resultElement.GetProperty("budget").GetDecimal());
-        
+
         Assert.Equal("MATCH", result.Reason);
         Assert.Equal("detailed", result.Variant);
     }
