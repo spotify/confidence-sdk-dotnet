@@ -401,7 +401,6 @@ namespace UnityOpenFeature.Providers
             var context = OpenFeatureAPI.Instance.EvaluationContext;
             var evaluationContext = new Dictionary<string, object>();
 
-            // Get attributes from context directly (now public)
             foreach (var attr in context.attributes)
             {
                 evaluationContext[attr.Key] = attr.Value;
