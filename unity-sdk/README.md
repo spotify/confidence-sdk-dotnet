@@ -45,7 +45,8 @@ unity-sdk/
    ```json
    {
      "dependencies": {
-       "com.unity.openfeature": "file:../path/to/unity-sdk"
+       "com.unity.openfeature": "file:../path/to/unity-sdk",
+       "com.unity.modules.unitywebrequest": "1.0.0"
      }
    }
    ```
@@ -67,6 +68,7 @@ unity-sdk/
 
 - Unity 2020.3+
 - com.unity.nuget.newtonsoft-json: 3.0.2
+- UnityWebRequest 1.0.0 (Builtin)
 
 
 ## Compile check
