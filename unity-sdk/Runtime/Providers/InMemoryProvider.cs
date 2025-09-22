@@ -11,6 +11,8 @@ namespace UnityOpenFeature.Providers
         public string Name => "InMemoryProvider";
         public bool IsReady { get; private set; }
 
+        public event Action OnReady;
+
         [SerializeField] private List<FeatureFlag> flags = new List<FeatureFlag>();
         private Dictionary<string, object> flagDictionary = new Dictionary<string, object>();
 
@@ -27,6 +29,7 @@ namespace UnityOpenFeature.Providers
         {
             InitializeDictionary();
             IsReady = true;
+            OnReady?.Invoke();
             callback?.Invoke(true, "InMemoryProvider initialized");
             Debug.Log($"InMemoryProvider initialized with {flags.Count} flags");
         }
