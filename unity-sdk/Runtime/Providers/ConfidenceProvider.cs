@@ -114,11 +114,11 @@ namespace UnityOpenFeature.Providers
             FetchAndActivate((success, error) =>
             {
                 IsReady = success;
-                OnReady?.Invoke();
                 callback?.Invoke(success, error);
                 if (success)
                 {
                     Debug.Log($"ConfidenceProvider initialized and flags fetched successfully");
+                    OnReady?.Invoke();
                 }
                 else
                 {
