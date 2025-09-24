@@ -14,6 +14,8 @@ namespace UnityOpenFeature.Core
         void Initialize(Action<bool, string> callback = null);
         void OnContextSet(EvaluationContext oldContext, EvaluationContext newContext, Action<bool, string> callback = null);
         void Shutdown();
+
+        event Action OnReady;
     }
 }
 

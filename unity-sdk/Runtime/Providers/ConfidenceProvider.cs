@@ -16,6 +16,8 @@ namespace UnityOpenFeature.Providers
         public string Name => "ConfidenceProvider";
         public bool IsReady { get; private set; }
 
+        public event Action OnReady;
+
         [SerializeField] private string clientSecret;
         private ConfidenceApiClient apiClient;
 
@@ -116,6 +118,7 @@ namespace UnityOpenFeature.Providers
                 if (success)
                 {
                     Debug.Log($"ConfidenceProvider initialized and flags fetched successfully");
+                    OnReady?.Invoke();
                 }
                 else
                 {
