@@ -1,0 +1,198 @@
+name: Unity Package Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'unity-openfeature-sdk/**'
+      - 'unity-confidence-provider/**'
+      - 'examples/UnitySampleGame/**'
+  push:
+    branches: [ main ]
+    paths:
+      - 'unity-openfeature-sdk/**'
+      - 'unity-confidence-provider/**'
+      - 'examples/UnitySampleGame/**'
+
+jobs:
+  unity-build-test:
+    name: Test Unity Package Compilation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Unity
+      uses: game-ci/unity-builder@v4
+      env:
+        UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+        UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      with:
+        unityVersion: 2022.3.62f1
+        targetPlatform: StandaloneLinux64
+        projectPath: /dev/null  # We'll create test projects
+        buildMethod: '' # No build method needed for compilation test
+
+    - name: Test Unity OpenFeature SDK Compilation
+      working-directory: unity-openfeature-sdk
+      run: |
+        echo "🔨 Testing Unity OpenFeature SDK compilation..."
+        chmod +x build-test.sh
+        ./build-test.sh
+
+    - name: Test Unity Confidence Provider Compilation
+      working-directory: unity-confidence-provider
+      run: |
+        echo "🔨 Testing Unity Confidence Provider compilation..."
+        chmod +x build-test.sh
+        ./build-test.sh
+
+    - name: Validate Sample Game Project Structure
+      working-directory: examples/UnitySampleGame/Sample3DGame
+      run: |
+        echo "📦 Validating Unity sample game package references..."
+
+        # Check if manifest.json references both packages correctly
+        if ! grep -q "com.unity.openfeature.*unity-openfeature-sdk" Packages/manifest.json; then
+          echo "❌ Unity OpenFeature SDK reference not found in manifest.json"
+          exit 1
+        fi
+
+        if ! grep -q "com.spotify.confidence.unity.*unity-confidence-provider" Packages/manifest.json; then
+          echo "❌ Unity Confidence Provider reference not found in manifest.json"
+          exit 1
+        fi
+
+        echo "✅ Sample game package references are correct"
+
+  package-structure-validation:
+    name: Validate Package Structure
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Validate Unity OpenFeature SDK Structure
+      run: |
+        echo "📁 Validating Unity OpenFeature SDK structure..."
+
+        # Check required files exist
+        required_files=(
+          "unity-openfeature-sdk/package.json"
+          "unity-openfeature-sdk/README.md"
+          "unity-openfeature-sdk/Runtime/UnityOpenFeature.asmdef"
+          "unity-openfeature-sdk/build-test.sh"
+        )
+
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ Required file missing: $file"
+            exit 1
+          fi
+        done
+
+        # Validate package.json
+        if ! grep -q '"name": "com.unity.openfeature"' unity-openfeature-sdk/package.json; then
+          echo "❌ Invalid package name in unity-openfeature-sdk/package.json"
+          exit 1
+        fi
+
+        echo "✅ Unity OpenFeature SDK structure is valid"
+
+    - name: Validate Unity Confidence Provider Structure
+      run: |
+        echo "📁 Validating Unity Confidence Provider structure..."
+
+        # Check required files exist
+        required_files=(
+          "unity-confidence-provider/package.json"
+          "unity-confidence-provider/README.md"
+          "unity-confidence-provider/Runtime/ConfidenceProvider.asmdef"
+          "unity-confidence-provider/Runtime/ConfidenceProvider.cs"
+          "unity-confidence-provider/Runtime/ConfidenceApiClient.cs"
+          "unity-confidence-provider/build-test.sh"
+        )
+
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ Required file missing: $file"
+            exit 1
+          fi
+        done
+
+        # Validate package.json
+        if ! grep -q '"name": "com.spotify.confidence.unity"' unity-confidence-provider/package.json; then
+          echo "❌ Invalid package name in unity-confidence-provider/package.json"
+          exit 1
+        fi
+
+        # Validate assembly definition references
+        if ! grep -q '"UnityOpenFeature"' unity-confidence-provider/Runtime/ConfidenceProvider.asmdef; then
+          echo "❌ Missing UnityOpenFeature reference in ConfidenceProvider.asmdef"
+          exit 1
+        fi
+
+        echo "✅ Unity Confidence Provider structure is valid"
+
+    - name: Validate No Old Unity SDK References
+      run: |
+        echo "🔍 Checking for old unity-sdk references..."
+
+        # Check that old unity-sdk directory doesn't exist
+        if [ -d "unity-sdk" ]; then
+          echo "❌ Old unity-sdk directory still exists"
+          exit 1
+        fi
+
+        # Check that no files reference the old path (excluding this workflow)
+        if grep -r "unity-sdk" --exclude="*.yml" --exclude="*.yaml" .; then
+          echo "❌ Found references to old unity-sdk path"
+          exit 1
+        fi
+
+        echo "✅ No old unity-sdk references found"
+
+  documentation-check:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Check README Completeness
+      run: |
+        echo "📚 Validating documentation completeness..."
+
+        # Check Unity OpenFeature SDK README
+        if ! grep -q "Installation" unity-openfeature-sdk/README.md; then
+          echo "❌ Unity OpenFeature SDK README missing installation instructions"
+          exit 1
+        fi
+
+        if ! grep -q "com.unity.openfeature" unity-openfeature-sdk/README.md; then
+          echo "❌ Unity OpenFeature SDK README missing package name"
+          exit 1
+        fi
+
+        # Check Unity Confidence Provider README
+        if ! grep -q "Prerequisites" unity-confidence-provider/README.md; then
+          echo "❌ Unity Confidence Provider README missing prerequisites"
+          exit 1
+        fi
+
+        if ! grep -q "com.spotify.confidence.unity" unity-confidence-provider/README.md; then
+          echo "❌ Unity Confidence Provider README missing package name"
+          exit 1
+        fi
+
+        # Check CLAUDE.md was updated
+        if ! grep -q "unity-openfeature-sdk" CLAUDE.md; then
+          echo "❌ CLAUDE.md not updated with new package structure"
+          exit 1
+        fi
+
+        echo "✅ Documentation is complete and accurate"
