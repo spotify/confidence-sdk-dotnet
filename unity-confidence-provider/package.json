@@ -1,0 +1,26 @@
+{
+  "name": "com.spotify.confidence.unity",
+  "version": "1.0.0",
+  "displayName": "Unity Confidence Provider",
+  "description": "Confidence provider for Unity OpenFeature SDK",
+  "unity": "2020.3",
+  "dependencies": {
+    "com.unity.modules.unitywebrequest": "1.0.0"
+  },
+  "keywords": [
+    "confidence",
+    "openfeature",
+    "feature-flags",
+    "unity",
+    "provider"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spotify/confidence-sdk-dotnet.git",
+    "directory": "unity-confidence-provider"
+  },
+  "author": {
+    "name": "Spotify",
+    "email": "confidence@spotify.com"
+  }
+}
