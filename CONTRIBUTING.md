@@ -1,12 +1,15 @@
 # Contributing to Confidence SDK for .NET
 
-We love your input! We want to make contributing to Confidence SDK for .NET as easy and transparent as possible, whether it's:
+## Getting Involved
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Becoming a maintainer
+We welcome contributions and are happy to discuss ideas, answer questions, and help you get started.
+
+**Before opening a pull request**, please open an issue or start a discussion with the maintainers. This helps us:
+- Ensure the change aligns with the project's direction
+- Avoid duplicate or conflicting work
+- Provide guidance on implementation approach
+
+We're friendly and responsive—don't hesitate to reach out!
 
 ## Development Process
 
