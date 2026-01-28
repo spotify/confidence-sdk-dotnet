@@ -406,7 +406,7 @@ public class ConfidenceClientTests
         Assert.True(sdkElement.TryGetProperty("id", out var idElement));
         Assert.Equal("SDK_ID_DOTNET_CONFIDENCE", idElement.GetString());
         Assert.True(sdkElement.TryGetProperty("version", out var versionElement));
-        var version = "0.1.0"; //x-release-please-version
+        var version = "0.2.0"; //x-release-please-version
         Assert.Equal(version + ".0", versionElement.GetString());
     }
 
