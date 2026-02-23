@@ -193,51 +193,27 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
 
         try
         {
-            var request = new EvaluationRequest(flagKey, context, _clientSecret);
+            // Parse dot-notation to get base flag name for API request
+            var (baseFlagName, _) = DotNotationHelper.ParseDotNotation(flagKey);
+
+            var request = new EvaluationRequest(baseFlagName, context, _clientSecret);
             var response = await SendRequestAsync<ResolveResponse>(_resolveClient, RESOLVE_FLAGS_ENDPOINT, request, cancellationToken);
 
-            var flag = GetResolvedFlagOrDefault(response, flagKey);
+            var flag = GetResolvedFlagOrDefault(response, baseFlagName);
             if (flag == null)
             {
                 ConfidenceClientLogger.FlagNotFound(_logger, flagKey, defaultValue, null);
-                return EvaluationResult.Failure(defaultValue, $"Flag '{flagKey}' not found in response");
+                return EvaluationResult.Failure(defaultValue, $"Flag '{baseFlagName}' not found in response");
             }
 
-            var value = flag.Value.TryGetValue("value", out var wrappedValue) ? wrappedValue : flag.Value;
+            // Use DotNotationHelper for consistent value extraction that handles
+            // property paths and avoids collision with properties named "value"
+            var (typedValue, errorMessage) = DotNotationHelper.ExtractTypedValue(flag, flagKey, defaultValue, _jsonOptions);
 
-            T typedValue;
-            try
+            if (errorMessage != null)
             {
-                if (value is JsonElement element)
-                {
-                    if (typeof(T) == typeof(bool))
-                    {
-                        typedValue = (T)(object)(element.ValueKind == JsonValueKind.True);
-                    }
-                    else if (typeof(T) == typeof(string))
-                    {
-                        typedValue = (T)(object)element.GetString()!;
-                    }
-                    else if (typeof(T) == typeof(double))
-                    {
-                        typedValue = (T)(object)element.GetDouble();
-                    }
-                    else
-                    {
-                        // For complex objects, deserialize using JsonSerializer
-                        var json = element.GetRawText();
-                        typedValue = JsonSerializer.Deserialize<T>(json, _jsonOptions) ?? defaultValue;
-                    }
-                }
-                else
-                {
-                    typedValue = value is T t ? t : defaultValue;
-                }
-            }
-            catch (Exception ex)
-            {
-                ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, ex);
-                return EvaluationResult.Failure(defaultValue, "Failed to parse flag value", ex);
+                ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, null);
+                return EvaluationResult.Failure(defaultValue, errorMessage);
             }
 
             ConfidenceClientLogger.FlagResolved(_logger, flagKey, typedValue, flag.Reason, flag.Variant, null);
