@@ -61,7 +61,7 @@ public class DotNotationTests
     [Fact]
     public void ExtractFlagValue_WithPropertyPath_NavigatesToProperty()
     {
-        // Arrange
+        // Arrange - schema properties are directly in flagValue (matching actual API structure)
         var nestedObject = new Dictionary<string, object>
         {
             ["theme"] = "dark",
@@ -69,12 +69,9 @@ public class DotNotationTests
         };
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = new Dictionary<string, object>
+            ["user"] = new Dictionary<string, object>
             {
-                ["user"] = new Dictionary<string, object>
-                {
-                    ["settings"] = nestedObject
-                }
+                ["settings"] = nestedObject
             }
         };
         var propertyPath = new[] { "user", "settings", "theme" };
@@ -89,17 +86,14 @@ public class DotNotationTests
     [Fact]
     public void ExtractFlagValue_PropertyNotFound_ReturnsNull()
     {
-        // Arrange
+        // Arrange - schema properties directly in flagValue (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = new Dictionary<string, object>
+            ["user"] = new Dictionary<string, object>
             {
-                ["user"] = new Dictionary<string, object>
+                ["settings"] = new Dictionary<string, object>
                 {
-                    ["settings"] = new Dictionary<string, object>
-                    {
-                        ["theme"] = "dark"
-                    }
+                    ["theme"] = "dark"
                 }
             }
         };
@@ -115,21 +109,19 @@ public class DotNotationTests
     [Fact]
     public void ExtractFlagValue_WithJsonElement_NavigatesToProperty()
     {
-        // Arrange
+        // Arrange - JsonElement containing nested structure, directly in flagValue
         var jsonString = """
         {
-            "user": {
-                "settings": {
-                    "theme": "dark",
-                    "language": "en"
-                }
+            "settings": {
+                "theme": "dark",
+                "language": "en"
             }
         }
         """;
         var jsonElement = JsonDocument.Parse(jsonString).RootElement;
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = jsonElement
+            ["user"] = jsonElement
         };
         var propertyPath = new[] { "user", "settings", "theme" };
 
@@ -329,15 +321,13 @@ public class DotNotationTests
     [Fact]
     public void ExtractTypedValue_WithDotNotation_ExtractsNestedNumericTypes()
     {
-        // Arrange
-        var jsonString = """
+        // Arrange - schema properties directly in Value (matching actual API structure)
+        var settingsJson = """
         {
-            "settings": {
-                "timeout": 5000,
-                "maxRetries": 9223372036854775807,
-                "threshold": 2.5,
-                "budget": 999.99
-            }
+            "timeout": 5000,
+            "maxRetries": 9223372036854775807,
+            "threshold": 2.5,
+            "budget": 999.99
         }
         """;
         var flag = new ResolvedFlag
@@ -347,7 +337,7 @@ public class DotNotationTests
             Variant = "control",
             Value = new Dictionary<string, object>
             {
-                ["value"] = JsonDocument.Parse(jsonString).RootElement
+                ["settings"] = JsonDocument.Parse(settingsJson).RootElement
             }
         };
 
@@ -375,13 +365,11 @@ public class DotNotationTests
     [Fact]
     public void ExtractTypedValue_WithDotNotation_ExtractsNestedProperty()
     {
-        // Arrange
-        var jsonString = """
+        // Arrange - schema properties directly in Value (matching actual API structure)
+        var userJson = """
         {
-            "user": {
-                "settings": {
-                    "darkMode": true
-                }
+            "settings": {
+                "darkMode": true
             }
         }
         """;
@@ -392,7 +380,7 @@ public class DotNotationTests
             Variant = "control",
             Value = new Dictionary<string, object>
             {
-                ["value"] = JsonDocument.Parse(jsonString).RootElement
+                ["user"] = JsonDocument.Parse(userJson).RootElement
             }
         };
         var flagKey = "user-config.user.settings.darkMode";
@@ -409,6 +397,7 @@ public class DotNotationTests
     public void ExtractTypedValue_PropertyNotFound_ReturnsError()
     {
         // Arrange
+        // Arrange - schema properties directly in Value (matching actual API structure)
         var flag = new ResolvedFlag
         {
             Flag = "test-flag",
@@ -416,10 +405,7 @@ public class DotNotationTests
             Variant = "control",
             Value = new Dictionary<string, object>
             {
-                ["value"] = new Dictionary<string, object>
-                {
-                    ["existing"] = "value"
-                }
+                ["existing"] = "value"
             }
         };
         var flagKey = "test-flag.nonexistent";
@@ -436,14 +422,12 @@ public class DotNotationTests
     [Fact]
     public void ExtractTypedValue_ComplexObject_DeserializesCorrectly()
     {
-        // Arrange
-        var jsonString = """
+        // Arrange - schema properties directly in Value (matching actual API structure)
+        var configJson = """
         {
-            "config": {
-                "name": "test-config",
-                "value": 123,
-                "enabled": true
-            }
+            "name": "test-config",
+            "value": 123,
+            "enabled": true
         }
         """;
         var flag = new ResolvedFlag
@@ -453,7 +437,7 @@ public class DotNotationTests
             Variant = "control",
             Value = new Dictionary<string, object>
             {
-                ["value"] = JsonDocument.Parse(jsonString).RootElement
+                ["config"] = JsonDocument.Parse(configJson).RootElement
             }
         };
         var flagKey = "app-config.config";
@@ -522,6 +506,185 @@ public class DotNotationTests
         // Assert
         Assert.Equal("deep-value", result);
     }
+
+    #region Value Property Collision Tests
+
+    [Fact]
+    public void ExtractFlagValue_FlagWithPrimitiveValueProperty_CanAccessOtherProperties()
+    {
+        // Arrange - flag has a property named "value" (primitive) alongside other properties
+        // This simulates the actual API response where values are JsonElements
+        var flagValue = new Dictionary<string, object>
+        {
+            ["value"] = JsonDocument.Parse("\"the-value-property\"").RootElement,
+            ["timeout"] = JsonDocument.Parse("5000").RootElement,
+            ["enabled"] = JsonDocument.Parse("true").RootElement
+        };
+        var propertyPath = new[] { "timeout" };
+
+        // Act
+        var result = DotNotationHelper.ExtractFlagValue(flagValue, propertyPath);
+
+        // Assert - should navigate to "timeout", not get stuck on "value"
+        var resultElement = Assert.IsType<JsonElement>(result);
+        Assert.Equal(5000, resultElement.GetInt32());
+    }
+
+    [Fact]
+    public void ExtractFlagValue_FlagWithPrimitiveValueProperty_CanAccessValuePropertyDirectly()
+    {
+        // Arrange - flag has a property named "value" (primitive)
+        var flagValue = new Dictionary<string, object>
+        {
+            ["value"] = JsonDocument.Parse("\"the-value-property\"").RootElement,
+            ["timeout"] = JsonDocument.Parse("5000").RootElement
+        };
+        var propertyPath = new[] { "value" };
+
+        // Act
+        var result = DotNotationHelper.ExtractFlagValue(flagValue, propertyPath);
+
+        // Assert - should return the "value" property contents
+        var resultElement = Assert.IsType<JsonElement>(result);
+        Assert.Equal("the-value-property", resultElement.GetString());
+    }
+
+    [Fact]
+    public void ExtractFlagValue_FlagWithPrimitiveValueProperty_NoPathReturnsValueForBackwardCompat()
+    {
+        // Arrange - flag has a property named "value" (primitive)
+        var flagValue = new Dictionary<string, object>
+        {
+            ["value"] = JsonDocument.Parse("\"the-value-property\"").RootElement,
+            ["timeout"] = JsonDocument.Parse("5000").RootElement
+        };
+        var propertyPath = Array.Empty<string>();
+
+        // Act
+        var result = DotNotationHelper.ExtractFlagValue(flagValue, propertyPath);
+
+        // Assert - backward compatibility: with no path, return "value" content
+        var resultElement = Assert.IsType<JsonElement>(result);
+        Assert.Equal("the-value-property", resultElement.GetString());
+    }
+
+    [Fact]
+    public void ExtractTypedValue_FlagWithValueProperty_CanAccessNestedProperties()
+    {
+        // Arrange - flag structure where "value" is a sibling property, not a wrapper
+        var flag = new ResolvedFlag
+        {
+            Flag = "my-config",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse("\"configured-value\"").RootElement,
+                ["timeout"] = JsonDocument.Parse("5000").RootElement,
+                ["retries"] = JsonDocument.Parse("3").RootElement
+            }
+        };
+
+        // Act - access the "timeout" property via dot-notation
+        var (timeoutResult, timeoutError) = DotNotationHelper.ExtractTypedValue<int>(flag, "my-config.timeout", 0);
+
+        // Assert
+        Assert.Null(timeoutError);
+        Assert.Equal(5000, timeoutResult);
+    }
+
+    [Fact]
+    public void ExtractTypedValue_FlagWithValueProperty_CanAccessValuePropertyViaDotNotation()
+    {
+        // Arrange
+        var flag = new ResolvedFlag
+        {
+            Flag = "my-config",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse("\"configured-value\"").RootElement,
+                ["timeout"] = JsonDocument.Parse("5000").RootElement
+            }
+        };
+
+        // Act - explicitly access the "value" property via dot-notation
+        var (valueResult, valueError) = DotNotationHelper.ExtractTypedValue<string>(flag, "my-config.value", "default");
+
+        // Assert
+        Assert.Null(valueError);
+        Assert.Equal("configured-value", valueResult);
+    }
+
+    [Fact]
+    public void ExtractTypedValue_FlagWithNestedValueProperty_NavigatesCorrectly()
+    {
+        // Arrange - flag with primitive "value" property and a nested "config" object
+        var configJson = """{"value": "nested-value", "setting": 42}""";
+        var flag = new ResolvedFlag
+        {
+            Flag = "app",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse("\"outer-value\"").RootElement,
+                ["config"] = JsonDocument.Parse(configJson).RootElement
+            }
+        };
+
+        // This test verifies we can navigate past the root "value" property to access config.setting
+        var (settingResult, settingError) = DotNotationHelper.ExtractTypedValue<int>(flag, "app.config.setting", 0);
+
+        Assert.Null(settingError);
+        Assert.Equal(42, settingResult);
+
+        // Also verify we can access the nested "value" property inside config
+        var (nestedValueResult, nestedValueError) = DotNotationHelper.ExtractTypedValue<string>(flag, "app.config.value", "default");
+
+        Assert.Null(nestedValueError);
+        Assert.Equal("nested-value", nestedValueResult);
+    }
+
+    [Fact]
+    public void ExtractTypedValue_FlagWithObjectValueProperty_CanAccessSiblings()
+    {
+        // Arrange - flag where "value" is an object (not primitive), with sibling properties
+        var valueObjectJson = """{"nested_data": "inside-value", "count": 10}""";
+        var flag = new ResolvedFlag
+        {
+            Flag = "complex-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse(valueObjectJson).RootElement,
+                ["timeout"] = JsonDocument.Parse("5000").RootElement,
+                ["name"] = JsonDocument.Parse("\"my-flag\"").RootElement
+            }
+        };
+
+        // Test accessing sibling properties when "value" is an object
+        var (timeoutResult, timeoutError) = DotNotationHelper.ExtractTypedValue<int>(flag, "complex-flag.timeout", 0);
+        Assert.Null(timeoutError);
+        Assert.Equal(5000, timeoutResult);
+
+        var (nameResult, nameError) = DotNotationHelper.ExtractTypedValue<string>(flag, "complex-flag.name", "default");
+        Assert.Null(nameError);
+        Assert.Equal("my-flag", nameResult);
+
+        // Test accessing nested properties inside the "value" object
+        var (nestedDataResult, nestedDataError) = DotNotationHelper.ExtractTypedValue<string>(flag, "complex-flag.value.nested_data", "default");
+        Assert.Null(nestedDataError);
+        Assert.Equal("inside-value", nestedDataResult);
+
+        var (countResult, countError) = DotNotationHelper.ExtractTypedValue<int>(flag, "complex-flag.value.count", 0);
+        Assert.Null(countError);
+        Assert.Equal(10, countResult);
+    }
+
+    #endregion
 
     private class TestConfig
     {

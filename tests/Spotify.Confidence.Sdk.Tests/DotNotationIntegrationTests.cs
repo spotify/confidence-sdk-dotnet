@@ -70,19 +70,11 @@ public class DotNotationIntegrationTests : IDisposable
         var flagKey = "user-settings.preferences.darkMode";
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse("""
-            {
-                "preferences": {
-                    "darkMode": true,
-                    "theme": "modern"
-                },
-                "profile": {
-                    "name": "John Doe"
-                }
-            }
-            """).RootElement
+            ["preferences"] = JsonDocument.Parse("""{"darkMode": true, "theme": "modern"}""").RootElement,
+            ["profile"] = JsonDocument.Parse("""{"name": "John Doe"}""").RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
@@ -116,19 +108,10 @@ public class DotNotationIntegrationTests : IDisposable
         var flagKey = "app-config.ui.theme.primaryColor";
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse("""
-            {
-                "ui": {
-                    "theme": {
-                        "primaryColor": "#FF5733",
-                        "secondaryColor": "#33FF57"
-                    },
-                    "layout": "grid"
-                }
-            }
-            """).RootElement
+            ["ui"] = JsonDocument.Parse("""{"theme": {"primaryColor": "#FF5733", "secondaryColor": "#33FF57"}, "layout": "grid"}""").RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
@@ -162,19 +145,11 @@ public class DotNotationIntegrationTests : IDisposable
         var flagKey = "performance.cache.timeoutMs";
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse("""
-            {
-                "cache": {
-                    "timeoutMs": 5000.5,
-                    "maxSize": 1000
-                },
-                "database": {
-                    "connectionTimeout": 30000
-                }
-            }
-            """).RootElement
+            ["cache"] = JsonDocument.Parse("""{"timeoutMs": 5000.5, "maxSize": 1000}""").RootElement,
+            ["database"] = JsonDocument.Parse("""{"connectionTimeout": 30000}""").RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
@@ -208,24 +183,11 @@ public class DotNotationIntegrationTests : IDisposable
         var flagKey = "feature-config.experimental.newFeature";
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse("""
-            {
-                "experimental": {
-                    "newFeature": {
-                        "enabled": true,
-                        "rolloutPercentage": 25,
-                        "description": "New experimental feature"
-                    }
-                },
-                "stable": {
-                    "existingFeature": {
-                        "enabled": true
-                    }
-                }
-            }
-            """).RootElement
+            ["experimental"] = JsonDocument.Parse("""{"newFeature": {"enabled": true, "rolloutPercentage": 25, "description": "New experimental feature"}}""").RootElement,
+            ["stable"] = JsonDocument.Parse("""{"existingFeature": {"enabled": true}}""").RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
@@ -262,15 +224,10 @@ public class DotNotationIntegrationTests : IDisposable
         var flagKey = "user-settings.nonexistent.property";
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse("""
-            {
-                "preferences": {
-                    "darkMode": true
-                }
-            }
-            """).RootElement
+            ["preferences"] = JsonDocument.Parse("""{"darkMode": true}""").RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
@@ -362,22 +319,10 @@ public class DotNotationIntegrationTests : IDisposable
         var flagKey = "complex-config.level1.level2.level3.level4.deepProperty";
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse("""
-            {
-                "level1": {
-                    "level2": {
-                        "level3": {
-                            "level4": {
-                                "deepProperty": true,
-                                "otherProperty": "test"
-                            }
-                        }
-                    }
-                }
-            }
-            """).RootElement
+            ["level1"] = JsonDocument.Parse("""{"level2": {"level3": {"level4": {"deepProperty": true, "otherProperty": "test"}}}}""").RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
@@ -441,16 +386,10 @@ public class DotNotationIntegrationTests : IDisposable
         var flagKey = "app-config.performance.maxConnections";
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse("""
-            {
-                "performance": {
-                    "maxConnections": 100,
-                    "timeout": 5000.5
-                }
-            }
-            """).RootElement
+            ["performance"] = JsonDocument.Parse("""{"maxConnections": 100, "timeout": 5000.5}""").RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
@@ -484,18 +423,10 @@ public class DotNotationIntegrationTests : IDisposable
         var flagKey = "metrics.stats";
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse("""
-            {
-                "stats": {
-                    "count": 42,
-                    "totalSize": 9223372036854775807,
-                    "avgLatency": 123.456,
-                    "budget": 999.99
-                }
-            }
-            """).RootElement
+            ["stats"] = JsonDocument.Parse("""{"count": 42, "totalSize": 9223372036854775807, "avgLatency": 123.456, "budget": 999.99}""").RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
@@ -539,9 +470,13 @@ public class DotNotationIntegrationTests : IDisposable
         // Arrange
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse($"{{\"maxRetries\": {jsonValue}, \"timeout\": {jsonValue}, \"batchSize\": {jsonValue}, \"port\": {jsonValue}}}").RootElement
+            ["maxRetries"] = JsonDocument.Parse(jsonValue).RootElement,
+            ["timeout"] = JsonDocument.Parse(jsonValue).RootElement,
+            ["batchSize"] = JsonDocument.Parse(jsonValue).RootElement,
+            ["port"] = JsonDocument.Parse(jsonValue).RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse
@@ -577,9 +512,12 @@ public class DotNotationIntegrationTests : IDisposable
         // Arrange
         var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
 
+        // Schema properties directly in Value dictionary (matching actual API structure)
         var flagValue = new Dictionary<string, object>
         {
-            ["value"] = JsonDocument.Parse($"{{\"standardRate\": 19.99, \"premiumRate\": 39.99, \"discountRate\": 9.99}}").RootElement
+            ["standardRate"] = JsonDocument.Parse("19.99").RootElement,
+            ["premiumRate"] = JsonDocument.Parse("39.99").RootElement,
+            ["discountRate"] = JsonDocument.Parse("9.99").RootElement
         };
 
         SetupMockResponse(HttpStatusCode.OK, new ResolveResponse

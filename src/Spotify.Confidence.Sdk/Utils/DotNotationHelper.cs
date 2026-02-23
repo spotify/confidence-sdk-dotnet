@@ -109,17 +109,22 @@ internal static class DotNotationHelper
     /// <returns>The extracted value.</returns>
     public static object? ExtractFlagValue(Dictionary<string, object> flagValue, string[] propertyPath)
     {
-        // First, try to get the "value" key if it exists (current behavior)
-        var startingValue = flagValue.TryGetValue("value", out var wrappedValue) ? wrappedValue : flagValue;
-
-        // If no property path, return the starting value
-        if (propertyPath.Length == 0)
+        // If there's a property path, always navigate directly from the root dictionary.
+        // This ensures that user-defined properties named "value" (whether primitive or object)
+        // don't interfere with accessing sibling properties.
+        if (propertyPath.Length > 0)
         {
-            return startingValue;
+            return NavigateToProperty(flagValue, propertyPath);
         }
 
-        // Navigate through the property path
-        return NavigateToProperty(startingValue, propertyPath);
+        // No property path - for backward compatibility, return the "value" content if it exists.
+        // This handles the common case where a simple flag has a single "value" property.
+        if (flagValue.TryGetValue("value", out var wrappedValue))
+        {
+            return wrappedValue;
+        }
+
+        return flagValue;
     }
 
     /// <summary>
