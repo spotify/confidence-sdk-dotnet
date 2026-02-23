@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.1.0...v0.2.0) (2026-02-23)
+
+
+### 🐛 Bug Fixes
+
+* Correct meta file for Unity SDK ([#25](https://github.com/spotify/confidence-sdk-dotnet/issues/25)) ([7dc8728](https://github.com/spotify/confidence-sdk-dotnet/commit/7dc8728d20b43d3e28ad963475d84708b24fd312))
+* resolve flag properties when schema contains a "value" property ([#30](https://github.com/spotify/confidence-sdk-dotnet/issues/30)) ([45bdccf](https://github.com/spotify/confidence-sdk-dotnet/commit/45bdccfb245c61d559e15c049dec9b997dc10dbb))
+
+
+### ✨ New Features
+
+* Add unity sdk for openfeature and the confidence provider with an unity sample game ([#22](https://github.com/spotify/confidence-sdk-dotnet/issues/22)) ([36500a1](https://github.com/spotify/confidence-sdk-dotnet/commit/36500a150ed73ff2dfc891b8f392d3603b1e6dad))
+* align Unity SDK with OpenFeature static-context paradigm ([#28](https://github.com/spotify/confidence-sdk-dotnet/issues/28)) ([74a2fb2](https://github.com/spotify/confidence-sdk-dotnet/commit/74a2fb26b2a41f0945c7c534915213c0e5b7da82))
+* IFeatureProvider exposes an OnReady event ([#26](https://github.com/spotify/confidence-sdk-dotnet/issues/26)) ([4ee1f94](https://github.com/spotify/confidence-sdk-dotnet/commit/4ee1f94d944c6ff91a302b52a5efb3128d2403cb))
+* use the unity-sdk from the github ([#24](https://github.com/spotify/confidence-sdk-dotnet/issues/24)) ([244173b](https://github.com/spotify/confidence-sdk-dotnet/commit/244173b86b26e315c7e2fbf8abc3077148d689d8))
+
 ## [0.1.0](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.0.1...v0.1.0) (2025-08-14)
 
 
