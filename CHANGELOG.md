@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.2.0...v0.2.1) (2026-03-09)
+
+
+### 🐛 Bug Fixes
+
+* handle double-formatted integers in ConvertToType ([#31](https://github.com/spotify/confidence-sdk-dotnet/issues/31)) ([11585e4](https://github.com/spotify/confidence-sdk-dotnet/commit/11585e47554983a807715b442aba5cf90a089381))
+
 ## [0.2.0](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.1.0...v0.2.0) (2026-02-23)
 
 
