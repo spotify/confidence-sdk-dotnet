@@ -199,11 +199,23 @@ internal static class DotNotationHelper
             }
             else if (typeof(T) == typeof(int))
             {
-                return (T)(object)element.GetInt32();
+                if (element.TryGetInt32(out var intVal))
+                {
+                    return (T)(object)intVal;
+                }
+
+                // Handle double-formatted integers from the API (e.g. 400.0)
+                return (T)(object)(int)element.GetDouble();
             }
             else if (typeof(T) == typeof(long))
             {
-                return (T)(object)element.GetInt64();
+                if (element.TryGetInt64(out var longVal))
+                {
+                    return (T)(object)longVal;
+                }
+
+                // Handle double-formatted integers from the API (e.g. 400.0)
+                return (T)(object)(long)element.GetDouble();
             }
             else if (typeof(T) == typeof(float))
             {
