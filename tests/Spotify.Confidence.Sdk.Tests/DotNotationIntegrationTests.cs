@@ -544,6 +544,61 @@ public class DotNotationIntegrationTests : IDisposable
         Assert.Equal("current", result.Variant);
     }
 
+    [Fact]
+    public async Task GetIntValueAsync_WithIntegerSchemaAndDoubleJsonValue_ReturnsCorrectInteger()
+    {
+        // Arrange - raw JSON matching the Confidence API response format,
+        // where integer values are represented as 400.0 (double) in JSON
+        // and the schema declares them as intSchema
+        var context = new ConfidenceContext(new Dictionary<string, object> { { "user_id", "user123" } });
+
+        var responseJson = """
+        {
+            "resolvedFlags": [
+                {
+                    "flag": "flags/test-flag",
+                    "variant": "flags/test-flag/variants/variant-1",
+                    "value": {
+                        "myinteger": 400.0
+                    },
+                    "flag_schema": {
+                        "schema": {
+                            "myinteger": {
+                                "int_schema": {}
+                            }
+                        }
+                    },
+                    "reason": "RESOLVE_REASON_MATCH"
+                }
+            ],
+            "resolveToken": "token1"
+        }
+        """;
+
+        SetupRawJsonResponse(HttpStatusCode.OK, responseJson);
+
+        // Act
+        var result = await _client.GetIntValueAsync("test-flag.myinteger", 0, context);
+
+        // Assert
+        Assert.Equal(400, result);
+    }
+
+    private void SetupRawJsonResponse(HttpStatusCode statusCode, string json)
+    {
+        var response = new HttpResponseMessage(statusCode)
+        {
+            Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json")
+        };
+
+        _mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(response);
+    }
+
     public void Dispose()
     {
         _client?.Dispose();

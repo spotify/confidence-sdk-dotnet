@@ -507,6 +507,108 @@ public class DotNotationTests
         Assert.Equal("deep-value", result);
     }
 
+    #region Double-to-Integer Conversion Tests
+
+    [Theory]
+    [InlineData("400.0", 400)]
+    [InlineData("0.0", 0)]
+    [InlineData("-123.0", -123)]
+    public void ExtractTypedValue_IntFromDoubleFormattedWholeNumber_ReturnsCorrectValue(string jsonValue, int expectedValue)
+    {
+        // Arrange - API returns integers as doubles (e.g. 400.0) due to proto/JSON encoding
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse(jsonValue).RootElement
+            }
+        };
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<int>(flag, "test-flag", 0);
+
+        // Assert
+        Assert.Null(errorMessage);
+        Assert.Equal(expectedValue, result);
+    }
+
+    [Fact]
+    public void ExtractTypedValue_IntFromFractionalDouble_ReturnsDefaultWithError()
+    {
+        // Arrange - a true fractional value should not convert to int
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse("400.5").RootElement
+            }
+        };
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<int>(flag, "test-flag", 0);
+
+        // Assert
+        Assert.NotNull(errorMessage);
+        Assert.Equal(0, result);
+    }
+
+    [Theory]
+    [InlineData("400.0", 400L)]
+    [InlineData("0.0", 0L)]
+    [InlineData("-123.0", -123L)]
+    public void ExtractTypedValue_LongFromDoubleFormattedWholeNumber_ReturnsCorrectValue(string jsonValue, long expectedValue)
+    {
+        // Arrange
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse(jsonValue).RootElement
+            }
+        };
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<long>(flag, "test-flag", 0L);
+
+        // Assert
+        Assert.Null(errorMessage);
+        Assert.Equal(expectedValue, result);
+    }
+
+    [Fact]
+    public void ExtractTypedValue_LongFromFractionalDouble_ReturnsDefaultWithError()
+    {
+        // Arrange
+        var flag = new ResolvedFlag
+        {
+            Flag = "test-flag",
+            Reason = "MATCH",
+            Variant = "control",
+            Value = new Dictionary<string, object>
+            {
+                ["value"] = JsonDocument.Parse("400.5").RootElement
+            }
+        };
+
+        // Act
+        var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<long>(flag, "test-flag", 0L);
+
+        // Assert
+        Assert.NotNull(errorMessage);
+        Assert.Equal(0L, result);
+    }
+
+    #endregion
+
     #region Value Property Collision Tests
 
     [Fact]

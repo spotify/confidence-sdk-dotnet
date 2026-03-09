@@ -199,11 +199,24 @@ internal static class DotNotationHelper
             }
             else if (typeof(T) == typeof(int))
             {
-                return (T)(object)element.GetInt32();
+                if (element.TryGetInt32(out var intVal))
+                    return (T)(object)intVal;
+                // Handle double-formatted whole numbers like 400.0 from the API
+                var dInt = element.GetDouble();
+                if (dInt % 1 == 0)
+                    return (T)(object)(int)dInt;
+                throw new InvalidOperationException(
+                    $"Cannot convert {dInt} to int: value has a fractional part");
             }
             else if (typeof(T) == typeof(long))
             {
-                return (T)(object)element.GetInt64();
+                if (element.TryGetInt64(out var longVal))
+                    return (T)(object)longVal;
+                var dLong = element.GetDouble();
+                if (dLong % 1 == 0)
+                    return (T)(object)(long)dLong;
+                throw new InvalidOperationException(
+                    $"Cannot convert {dLong} to long: value has a fractional part");
             }
             else if (typeof(T) == typeof(float))
             {
