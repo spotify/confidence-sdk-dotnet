@@ -536,9 +536,9 @@ public class DotNotationTests
     }
 
     [Fact]
-    public void ExtractTypedValue_IntFromFractionalDouble_ReturnsDefaultWithError()
+    public void ExtractTypedValue_IntFromFractionalDouble_TruncatesToInt()
     {
-        // Arrange - a true fractional value should not convert to int
+        // Arrange - fractional values are truncated to int (consistent with Python SDK)
         var flag = new ResolvedFlag
         {
             Flag = "test-flag",
@@ -554,8 +554,8 @@ public class DotNotationTests
         var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<int>(flag, "test-flag", 0);
 
         // Assert
-        Assert.NotNull(errorMessage);
-        Assert.Equal(0, result);
+        Assert.Null(errorMessage);
+        Assert.Equal(400, result);
     }
 
     [Theory]
@@ -585,9 +585,9 @@ public class DotNotationTests
     }
 
     [Fact]
-    public void ExtractTypedValue_LongFromFractionalDouble_ReturnsDefaultWithError()
+    public void ExtractTypedValue_LongFromFractionalDouble_TruncatesToLong()
     {
-        // Arrange
+        // Arrange - fractional values are truncated to long (consistent with Python SDK)
         var flag = new ResolvedFlag
         {
             Flag = "test-flag",
@@ -603,8 +603,8 @@ public class DotNotationTests
         var (result, errorMessage) = DotNotationHelper.ExtractTypedValue<long>(flag, "test-flag", 0L);
 
         // Assert
-        Assert.NotNull(errorMessage);
-        Assert.Equal(0L, result);
+        Assert.Null(errorMessage);
+        Assert.Equal(400L, result);
     }
 
     #endregion

@@ -204,15 +204,8 @@ internal static class DotNotationHelper
                     return (T)(object)intVal;
                 }
 
-                // Handle double-formatted whole numbers like 400.0 from the API
-                var dInt = element.GetDouble();
-                if (Math.Abs(dInt % 1) < double.Epsilon)
-                {
-                    return (T)(object)(int)dInt;
-                }
-
-                throw new InvalidOperationException(
-                    $"Cannot convert {dInt} to int: value has a fractional part");
+                // Handle double-formatted integers from the API (e.g. 400.0)
+                return (T)(object)(int)element.GetDouble();
             }
             else if (typeof(T) == typeof(long))
             {
@@ -221,15 +214,8 @@ internal static class DotNotationHelper
                     return (T)(object)longVal;
                 }
 
-                // Handle double-formatted whole numbers like 400.0 from the API
-                var dLong = element.GetDouble();
-                if (Math.Abs(dLong % 1) < double.Epsilon)
-                {
-                    return (T)(object)(long)dLong;
-                }
-
-                throw new InvalidOperationException(
-                    $"Cannot convert {dLong} to long: value has a fractional part");
+                // Handle double-formatted integers from the API (e.g. 400.0)
+                return (T)(object)(long)element.GetDouble();
             }
             else if (typeof(T) == typeof(float))
             {
