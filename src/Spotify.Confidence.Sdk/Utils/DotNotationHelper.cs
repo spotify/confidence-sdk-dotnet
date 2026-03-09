@@ -200,21 +200,34 @@ internal static class DotNotationHelper
             else if (typeof(T) == typeof(int))
             {
                 if (element.TryGetInt32(out var intVal))
+                {
                     return (T)(object)intVal;
+                }
+
                 // Handle double-formatted whole numbers like 400.0 from the API
                 var dInt = element.GetDouble();
-                if (dInt % 1 == 0)
+                if (Math.Abs(dInt % 1) < double.Epsilon)
+                {
                     return (T)(object)(int)dInt;
+                }
+
                 throw new InvalidOperationException(
                     $"Cannot convert {dInt} to int: value has a fractional part");
             }
             else if (typeof(T) == typeof(long))
             {
                 if (element.TryGetInt64(out var longVal))
+                {
                     return (T)(object)longVal;
+                }
+
+                // Handle double-formatted whole numbers like 400.0 from the API
                 var dLong = element.GetDouble();
-                if (dLong % 1 == 0)
+                if (Math.Abs(dLong % 1) < double.Epsilon)
+                {
                     return (T)(object)(long)dLong;
+                }
+
                 throw new InvalidOperationException(
                     $"Cannot convert {dLong} to long: value has a fractional part");
             }
