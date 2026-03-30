@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.2.1...v0.2.2) (2026-03-30)
+
+
+### 🐛 Bug Fixes
+
+* **unity:** add Preserve attribute to all Newtonsoft DTO classes ([86e8766](https://github.com/spotify/confidence-sdk-dotnet/commit/86e87667051b21fa8961b44419b8922bf52a46b0))
+* **unity:** prevent IL2CPP from stripping CustomDateTimeConverter ([#34](https://github.com/spotify/confidence-sdk-dotnet/issues/34)) ([6e006a8](https://github.com/spotify/confidence-sdk-dotnet/commit/6e006a8cad91f15d370061b839d7f4acba960718))
+
 ## [0.2.1](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.2.0...v0.2.1) (2026-03-09)
 
 
