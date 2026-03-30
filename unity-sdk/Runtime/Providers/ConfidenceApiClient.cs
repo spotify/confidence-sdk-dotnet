@@ -12,16 +12,15 @@ using Object = UnityEngine.Object;
 
 namespace UnityOpenFeature.Providers
 {
-    public class CustomDateTimeConverter : IsoDateTimeConverter
-    {
-        public CustomDateTimeConverter()
-        {
-            DateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
-        }
-    }
-
     public class ConfidenceApiClient : MonoBehaviour
     {
+        private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
+        {
+            Converters = new List<JsonConverter>
+            {
+                new IsoDateTimeConverter { DateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'" }
+            }
+        };
 
         private string sdkId = "SDK_ID_DOTNET_CONFIDENCE";
         private string sdkVersion = "0.1.1";
@@ -223,7 +222,7 @@ namespace UnityOpenFeature.Providers
                     }
                 };
 
-                string jsonBody = JsonConvert.SerializeObject(requestBody);
+                string jsonBody = JsonConvert.SerializeObject(requestBody, JsonSettings);
 
                 using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
                 {
@@ -259,7 +258,6 @@ namespace UnityOpenFeature.Providers
         private class ApplyFlagsRequest
         {
             public List<AppliedFlag> flags;
-            [JsonConverter(typeof(CustomDateTimeConverter))]
             public DateTime sendTime;
             public string clientSecret;
             public string resolveToken;
@@ -270,7 +268,6 @@ namespace UnityOpenFeature.Providers
         private class AppliedFlag
         {
             public string flag;
-            [JsonConverter(typeof(CustomDateTimeConverter))]
             public DateTime applyTime;
         }
 
