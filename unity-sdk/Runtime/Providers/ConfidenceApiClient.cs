@@ -8,12 +8,15 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using UnityEngine.Scripting;
 using Object = UnityEngine.Object;
 
 namespace UnityOpenFeature.Providers
 {
+    [Preserve]
     public class CustomDateTimeConverter : IsoDateTimeConverter
     {
+        [Preserve]
         public CustomDateTimeConverter()
         {
             DateTimeFormat = "yyyy-MM-dd'T'HH:mm:ss.fff'Z'";
