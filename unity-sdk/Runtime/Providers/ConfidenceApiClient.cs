@@ -258,7 +258,7 @@ namespace UnityOpenFeature.Providers
         }
 
 
-        [Serializable]
+        [Serializable, Preserve]
         private class ApplyFlagsRequest
         {
             public List<AppliedFlag> flags;
@@ -269,7 +269,7 @@ namespace UnityOpenFeature.Providers
             public SdkInfo sdk;
         }
 
-        [Serializable]
+        [Serializable, Preserve]
         private class AppliedFlag
         {
             public string flag;
@@ -277,14 +277,14 @@ namespace UnityOpenFeature.Providers
             public DateTime applyTime;
         }
 
-        [Serializable]
+        [Serializable, Preserve]
         private class SdkInfo
         {
             public string id;
             public string version;
         }
 
-        [Serializable]
+        [Serializable, Preserve]
         private class ResolveFlagsRequest
         {
             public List<string> flags;
@@ -294,14 +294,14 @@ namespace UnityOpenFeature.Providers
             public SdkInfo sdk;
         }
 
-        [Serializable]
+        [Serializable, Preserve]
         public class ResolveFlagsResponse
         {
             public List<ResolvedFlag> resolvedFlags;
             public string resolveToken;
         }
 
-        [Serializable]
+        [Serializable, Preserve]
         public class ResolvedFlag
         {
             public string flag;
