@@ -534,4 +534,264 @@ public class ConfidenceClientTests
         Assert.False(result.Value); // Should return default value (false for bool)
     }
 
+    [Fact]
+    public async Task ResolveRequest_IncludesTelemetryHeader_WhenDataExists()
+    {
+        // Arrange: Make a first resolve call to generate telemetry data
+        string? capturedTelemetryHeader = null;
+        int callCount = 0;
+
+        var resolveResponse = new ResolveResponse
+        {
+            ResolvedFlags = new[]
+            {
+                new ResolvedFlag
+                {
+                    Flag = "flags/test-flag",
+                    Value = new Dictionary<string, object> { { "value", true } },
+                    Reason = "RESOLVE_REASON_MATCH",
+                    Variant = "test-variant"
+                }
+            }
+        };
+
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+        var json = JsonSerializer.Serialize(resolveResponse, options);
+
+        _mockHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+            {
+                callCount++;
+                if (callCount == 2 && req.Headers.TryGetValues("X-CONFIDENCE-TELEMETRY", out var values))
+                {
+                    capturedTelemetryHeader = values.FirstOrDefault();
+                }
+            })
+            .ReturnsAsync(() =>
+            {
+                var resp = new HttpResponseMessage(HttpStatusCode.OK);
+                resp.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                return resp;
+            });
+
+        // First call generates telemetry data
+        await _client.EvaluateBooleanFlagAsync("test-flag", false);
+
+        // Second call should include the telemetry header from the first call's data
+        await _client.EvaluateBooleanFlagAsync("test-flag", false);
+
+        // Assert
+        Assert.NotNull(capturedTelemetryHeader);
+        // Verify it's valid base64
+        var bytes = Convert.FromBase64String(capturedTelemetryHeader);
+        Assert.NotEmpty(bytes);
+    }
+
+    [Fact]
+    public async Task ResolveRequest_NoTelemetryHeader_OnFirstCall()
+    {
+        // Arrange: First call should have no telemetry header since no data exists yet
+        string? capturedTelemetryHeader = "initial";
+
+        var resolveResponse = new ResolveResponse
+        {
+            ResolvedFlags = new[]
+            {
+                new ResolvedFlag
+                {
+                    Flag = "flags/test-flag",
+                    Value = new Dictionary<string, object> { { "value", true } },
+                    Reason = "RESOLVE_REASON_MATCH",
+                    Variant = "test-variant"
+                }
+            }
+        };
+
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+        var json = JsonSerializer.Serialize(resolveResponse, options);
+
+        _mockHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+            {
+                capturedTelemetryHeader = req.Headers.TryGetValues("X-CONFIDENCE-TELEMETRY", out var values)
+                    ? values.FirstOrDefault()
+                    : null;
+            })
+            .ReturnsAsync(() =>
+            {
+                var resp = new HttpResponseMessage(HttpStatusCode.OK);
+                resp.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                return resp;
+            });
+
+        // Act: First call
+        await _client.EvaluateBooleanFlagAsync("test-flag", false);
+
+        // Assert: No telemetry header on first call
+        Assert.Null(capturedTelemetryHeader);
+    }
+
+    [Fact]
+    public async Task EventTracking_DoesNotIncludeTelemetryHeader()
+    {
+        // Arrange: Generate some telemetry data first
+        var resolveResponse = new ResolveResponse
+        {
+            ResolvedFlags = new[]
+            {
+                new ResolvedFlag
+                {
+                    Flag = "flags/test-flag",
+                    Value = new Dictionary<string, object> { { "value", true } },
+                    Reason = "RESOLVE_REASON_MATCH",
+                    Variant = "test-variant"
+                }
+            }
+        };
+
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+        var json = JsonSerializer.Serialize(resolveResponse, options);
+        string? capturedTelemetryHeader = "initial";
+        int callCount = 0;
+
+        _mockHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+            {
+                callCount++;
+                // The second call is the TrackAsync call
+                if (callCount == 2)
+                {
+                    capturedTelemetryHeader = req.Headers.TryGetValues("X-CONFIDENCE-TELEMETRY", out var values)
+                        ? values.FirstOrDefault()
+                        : null;
+                }
+            })
+            .ReturnsAsync(() =>
+            {
+                var resp = new HttpResponseMessage(HttpStatusCode.OK);
+                resp.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                return resp;
+            });
+
+        // Generate telemetry data
+        await _client.EvaluateBooleanFlagAsync("test-flag", false);
+
+        // Track event should NOT include telemetry header
+        await _client.TrackAsync("test-event", new Dictionary<string, object> { { "key", "value" } });
+
+        // Assert: event tracking does not have telemetry header
+        Assert.Null(capturedTelemetryHeader);
+    }
+
+    [Fact]
+    public async Task TelemetryDisabled_NoTelemetryHeaderEver()
+    {
+        // Arrange: Create a client with telemetry disabled
+        var disabledOptions = new ConfidenceOptions
+        {
+            ClientSecret = "test-client-secret",
+            ResolveUrl = "https://api.test.com",
+            EventUrl = "https://api.test.com",
+            LogLevel = LogLevel.None,
+            TelemetryDisabled = true
+        };
+
+        var mockHandler = new Mock<HttpMessageHandler>();
+        var policy = HttpPolicyExtensions
+            .HandleTransientHttpError()
+            .WaitAndRetryAsync(3, _ => TimeSpan.FromMilliseconds(1));
+
+        var resolveClient = new HttpClient(new PolicyHttpMessageHandler(policy)
+        {
+            InnerHandler = mockHandler.Object
+        })
+        {
+            BaseAddress = new Uri(disabledOptions.ResolveUrl)
+        };
+
+        var trackingClient = new HttpClient(new PolicyHttpMessageHandler(policy)
+        {
+            InnerHandler = mockHandler.Object
+        })
+        {
+            BaseAddress = new Uri(disabledOptions.EventUrl)
+        };
+
+        var client = new ConfidenceClient(disabledOptions);
+
+        var resolveField = typeof(ConfidenceClient).GetField("_resolveClient",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var trackingField = typeof(ConfidenceClient).GetField("_trackingClient",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        resolveField?.SetValue(client, resolveClient);
+        trackingField?.SetValue(client, trackingClient);
+
+        string? capturedTelemetryHeader = "initial";
+        int callCount = 0;
+
+        var resolveResponse = new ResolveResponse
+        {
+            ResolvedFlags = new[]
+            {
+                new ResolvedFlag
+                {
+                    Flag = "flags/test-flag",
+                    Value = new Dictionary<string, object> { { "value", true } },
+                    Reason = "RESOLVE_REASON_MATCH",
+                    Variant = "test-variant"
+                }
+            }
+        };
+
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+        var json = JsonSerializer.Serialize(resolveResponse, options);
+
+        mockHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, ct) =>
+            {
+                callCount++;
+                capturedTelemetryHeader = req.Headers.TryGetValues("X-CONFIDENCE-TELEMETRY", out var values)
+                    ? values.FirstOrDefault()
+                    : null;
+            })
+            .ReturnsAsync(() =>
+            {
+                var resp = new HttpResponseMessage(HttpStatusCode.OK);
+                resp.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                return resp;
+            });
+
+        // First call
+        await client.EvaluateBooleanFlagAsync("test-flag", false);
+        Assert.Null(capturedTelemetryHeader);
+
+        // Second call
+        await client.EvaluateBooleanFlagAsync("test-flag", false);
+        Assert.Null(capturedTelemetryHeader);
+
+        // Verify telemetry is null
+        Assert.Null(client.Telemetry);
+    }
+
 }

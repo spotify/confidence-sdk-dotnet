@@ -161,4 +161,11 @@ internal static class ConfidenceClientLogger
             LogLevel.Error,
             new EventId(1023, "RequestFailedUnexpected"),
             "Unexpected error occurred during {RequestType} request to {BaseUrl}{Path}");
+
+    // Telemetry events
+    public static readonly Action<ILogger, Exception?> TelemetryError =
+        LoggerMessage.Define(
+            LogLevel.Debug,
+            new EventId(1025, "TelemetryError"),
+            "Telemetry error occurred (telemetry is best-effort, this does not affect SDK functionality)");
 }

@@ -62,6 +62,13 @@ public class ConfidenceOptions
     public LogLevel LogLevel { get; set; } = LogLevel.Information;
 
     /// <summary>
+    /// Gets or sets a value indicating whether telemetry collection is disabled.
+    /// When true, no telemetry data will be collected or sent.
+    /// Defaults to false (telemetry enabled).
+    /// </summary>
+    public bool TelemetryDisabled { get; set; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ConfidenceOptions"/> class.
     /// Creates a new instance of <see cref="ConfidenceOptions"/>.
     /// </summary>
