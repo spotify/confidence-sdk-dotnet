@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -9,7 +10,9 @@ using UnityEngine.Networking;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using UnityEngine.Scripting;
+using UnityOpenFeature.Telemetry;
 using Object = UnityEngine.Object;
+using Debug = UnityEngine.Debug;
 
 namespace UnityOpenFeature.Providers
 {
@@ -41,6 +44,9 @@ namespace UnityOpenFeature.Providers
         private float checkpointTimer = 0f;
         private const float CHECKPOINT_INTERVAL = 10f; // 10 seconds
 
+        private const string TelemetryHeaderName = "X-CONFIDENCE-TELEMETRY";
+        internal Telemetry.Telemetry Telemetry { get; private set; }
+
         // Private constructor - use Create() method instead
         private ConfidenceApiClient() { }
     
@@ -53,6 +59,7 @@ namespace UnityOpenFeature.Providers
             // Add the client as a component
             ConfidenceApiClient client = clientGO.AddComponent<ConfidenceApiClient>();
             client.clientSecret = clientSecret;
+            client.Telemetry = new Telemetry.Telemetry(Platform.DotNet, client.sdkVersion);
 
             return client;
         }
@@ -103,12 +110,32 @@ namespace UnityOpenFeature.Providers
             };
 
             string jsonBody = JsonConvert.SerializeObject(requestBody);
+            var stopwatch = Stopwatch.StartNew();
+            RequestStatus resolveStatus = RequestStatus.Ok;
 
             using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
             {
                 // Set headers
                 request.SetRequestHeader("Content-Type", "application/json");
                 request.SetRequestHeader("Accept", "application/json");
+
+                // Attach telemetry header
+                try
+                {
+                    if (Telemetry != null)
+                    {
+                        var headerValue = Telemetry.EncodedHeaderValue();
+                        if (headerValue != null)
+                        {
+                            request.SetRequestHeader(TelemetryHeaderName, headerValue);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.Log($"Telemetry header error (best-effort): {ex.Message}");
+                }
+
                 request.downloadHandler = new DownloadHandlerBuffer();
 
                 // Set upload handler with JSON body
@@ -119,6 +146,8 @@ namespace UnityOpenFeature.Providers
                 {
                     await Task.Delay(100); // Small delay to prevent busy waiting
                 }
+
+                stopwatch.Stop();
 
                 if (request.result == UnityWebRequest.Result.Success)
                 {
@@ -133,14 +162,26 @@ namespace UnityOpenFeature.Providers
                     }
                     catch (Exception ex)
                     {
+                        resolveStatus = RequestStatus.Error;
                         callback?.Invoke(null, $"Failed to parse response: {ex.Message}");
                     }
                 }
                 else
                 {
+                    resolveStatus = RequestStatus.Error;
                     string errorMsg = $"Network request failed: {request.error}";
                     callback?.Invoke(null, errorMsg);
                 }
+            }
+
+            // Track resolve latency (best-effort)
+            try
+            {
+                Telemetry?.TrackResolveLatency((ulong)stopwatch.ElapsedMilliseconds, resolveStatus);
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"Telemetry latency tracking error (best-effort): {ex.Message}");
             }
         }
 
