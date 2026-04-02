@@ -494,7 +494,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         var request = new EvaluationRequest(baseFlagName, context, _clientSecret);
 
         var stopwatch = Stopwatch.StartNew();
-        RequestStatus resolveStatus = RequestStatus.Ok;
+        RequestStatus resolveStatus = RequestStatus.Success;
         try
         {
             var response = await SendRequestAsync<ResolveResponse>(_resolveClient, RESOLVE_FLAGS_ENDPOINT, request, cancellationToken, attachTelemetry: true).ConfigureAwait(false);

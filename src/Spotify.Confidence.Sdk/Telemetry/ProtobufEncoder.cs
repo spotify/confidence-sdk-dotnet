@@ -117,9 +117,9 @@ internal static class ProtobufEncoder
     {
         using var ms = new MemoryStream();
 
-        // field 1: id (enum/varint) = TraceId.EvaluationOutcome
+        // field 1: id (enum/varint) = TraceId.FlagEvaluation
         WriteTag(ms, fieldNumber: 1, WireTypeVarint);
-        WriteVarint(ms, (ulong)TraceId.EvaluationOutcome);
+        WriteVarint(ms, (ulong)TraceId.FlagEvaluation);
 
         // field 5: evaluation_trace (length-delimited)
         var evalTraceBytes = EncodeEvalTraceBody(data);

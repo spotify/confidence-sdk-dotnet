@@ -6,19 +6,20 @@ namespace Spotify.Confidence.Sdk.Tests.Telemetry;
 public class TelemetryReasonMappingTests
 {
     [Theory]
-    [InlineData("RESOLVE_REASON_MATCH", (int)EvaluationReason.Match)]
-    [InlineData("RESOLVE_REASON_UNSPECIFIED", (int)EvaluationReason.Unspecified_)]
-    [InlineData("RESOLVE_REASON_NO_SEGMENT_MATCH", (int)EvaluationReason.NoSegmentMatch)]
-    [InlineData("RESOLVE_REASON_NO_TREATMENT_MATCH", (int)EvaluationReason.NoSegmentMatch)]
-    [InlineData("RESOLVE_REASON_FLAG_ARCHIVED", (int)EvaluationReason.Archived)]
-    [InlineData("RESOLVE_REASON_TARGETING_KEY_ERROR", (int)EvaluationReason.TargetingKeyError)]
-    [InlineData("ERROR", (int)EvaluationReason.Error)]
-    public void MapEvaluationReason_KnownApiReasons_MapsCorrectly(string apiReason, int expectedInt)
+    [InlineData("RESOLVE_REASON_MATCH", (int)EvaluationReason.TargetingMatch, (int)EvaluationErrorCode.Unspecified)]
+    [InlineData("RESOLVE_REASON_NO_SEGMENT_MATCH", (int)EvaluationReason.Default, (int)EvaluationErrorCode.Unspecified)]
+    [InlineData("RESOLVE_REASON_NO_TREATMENT_MATCH", (int)EvaluationReason.Default, (int)EvaluationErrorCode.Unspecified)]
+    [InlineData("RESOLVE_REASON_STALE", (int)EvaluationReason.Stale, (int)EvaluationErrorCode.Unspecified)]
+    [InlineData("RESOLVE_REASON_FLAG_ARCHIVED", (int)EvaluationReason.Disabled, (int)EvaluationErrorCode.Unspecified)]
+    [InlineData("RESOLVE_REASON_TARGETING_KEY_ERROR", (int)EvaluationReason.Error, (int)EvaluationErrorCode.TargetingKeyMissing)]
+    [InlineData("ERROR", (int)EvaluationReason.Error, (int)EvaluationErrorCode.General)]
+    public void MapEvaluationReason_KnownApiReasons_MapsCorrectly(string apiReason, int expectedReasonInt, int expectedErrorCodeInt)
     {
-        var expected = (EvaluationReason)expectedInt;
+        var expectedReason = (EvaluationReason)expectedReasonInt;
+        var expectedErrorCode = (EvaluationErrorCode)expectedErrorCodeInt;
         var (reason, errorCode) = Sdk.Telemetry.Telemetry.MapEvaluationReason(apiReason, null);
-        Assert.Equal(expected, reason);
-        Assert.Equal(EvaluationErrorCode.Unspecified, errorCode);
+        Assert.Equal(expectedReason, reason);
+        Assert.Equal(expectedErrorCode, errorCode);
     }
 
     [Fact]
@@ -46,43 +47,19 @@ public class TelemetryReasonMappingTests
     }
 
     [Fact]
-    public void MapEvaluationReason_ParseError_ReturnsParseError()
-    {
-        var (reason, errorCode) = Sdk.Telemetry.Telemetry.MapEvaluationReason(null, "Failed to parse flag value");
-        Assert.Equal(EvaluationReason.Error, reason);
-        Assert.Equal(EvaluationErrorCode.ParseError, errorCode);
-    }
-
-    [Fact]
-    public void MapEvaluationReason_TypeMismatchError_ReturnsParseError()
-    {
-        var (reason, errorCode) = Sdk.Telemetry.Telemetry.MapEvaluationReason(null, "Type mismatch for flag value");
-        Assert.Equal(EvaluationReason.Error, reason);
-        Assert.Equal(EvaluationErrorCode.ParseError, errorCode);
-    }
-
-    [Fact]
-    public void MapEvaluationReason_CannotConvertError_ReturnsParseError()
-    {
-        var (reason, errorCode) = Sdk.Telemetry.Telemetry.MapEvaluationReason(null, "Cannot convert value to expected type");
-        Assert.Equal(EvaluationReason.Error, reason);
-        Assert.Equal(EvaluationErrorCode.ParseError, errorCode);
-    }
-
-    [Fact]
-    public void MapEvaluationReason_CancelledError_ReturnsGeneralError()
-    {
-        var (reason, errorCode) = Sdk.Telemetry.Telemetry.MapEvaluationReason(null, "Request was cancelled");
-        Assert.Equal(EvaluationReason.Error, reason);
-        Assert.Equal(EvaluationErrorCode.GeneralError, errorCode);
-    }
-
-    [Fact]
-    public void MapEvaluationReason_GenericError_ReturnsGeneralError()
+    public void MapEvaluationReason_GenericError_ReturnsGeneral()
     {
         var (reason, errorCode) = Sdk.Telemetry.Telemetry.MapEvaluationReason(null, "Failed to communicate with Confidence API");
         Assert.Equal(EvaluationReason.Error, reason);
-        Assert.Equal(EvaluationErrorCode.GeneralError, errorCode);
+        Assert.Equal(EvaluationErrorCode.General, errorCode);
+    }
+
+    [Fact]
+    public void MapEvaluationReason_CancelledError_ReturnsGeneral()
+    {
+        var (reason, errorCode) = Sdk.Telemetry.Telemetry.MapEvaluationReason(null, "Request was cancelled");
+        Assert.Equal(EvaluationReason.Error, reason);
+        Assert.Equal(EvaluationErrorCode.General, errorCode);
     }
 
     [Fact]

@@ -16,7 +16,7 @@ public class TelemetryTests
     public void EncodedHeaderValue_SnapshotAndClear_SecondCallReturnsNull()
     {
         var telemetry = new Sdk.Telemetry.Telemetry(Platform.DotNet);
-        telemetry.TrackEvaluation(EvaluationReason.Match, EvaluationErrorCode.Unspecified);
+        telemetry.TrackEvaluation(EvaluationReason.TargetingMatch, EvaluationErrorCode.Unspecified);
 
         var first = telemetry.EncodedHeaderValue();
         Assert.NotNull(first);
@@ -31,7 +31,7 @@ public class TelemetryTests
         var telemetry = new Sdk.Telemetry.Telemetry(Platform.DotNet);
         for (int i = 0; i < 150; i++)
         {
-            telemetry.TrackEvaluation(EvaluationReason.Match, EvaluationErrorCode.Unspecified);
+            telemetry.TrackEvaluation(EvaluationReason.TargetingMatch, EvaluationErrorCode.Unspecified);
         }
 
         // Should produce a non-null value but with only 100 traces
@@ -48,7 +48,7 @@ public class TelemetryTests
         var telemetry = new Sdk.Telemetry.Telemetry(Platform.DotNet);
         for (int i = 0; i < 150; i++)
         {
-            telemetry.TrackResolveLatency(50, RequestStatus.Ok);
+            telemetry.TrackResolveLatency(50, RequestStatus.Success);
         }
 
         var headerValue = telemetry.EncodedHeaderValue();
@@ -68,8 +68,8 @@ public class TelemetryTests
             {
                 for (int j = 0; j < 20; j++)
                 {
-                    telemetry.TrackEvaluation(EvaluationReason.Match, EvaluationErrorCode.Unspecified);
-                    telemetry.TrackResolveLatency(10, RequestStatus.Ok);
+                    telemetry.TrackEvaluation(EvaluationReason.TargetingMatch, EvaluationErrorCode.Unspecified);
+                    telemetry.TrackResolveLatency(10, RequestStatus.Success);
                 }
             });
             threads.Add(thread);
@@ -114,7 +114,7 @@ public class TelemetryTests
     {
         var telemetry = new Sdk.Telemetry.Telemetry(Platform.DotNet);
         telemetry.CurrentLibrary = Library.OpenFeature;
-        telemetry.TrackEvaluation(EvaluationReason.Match, EvaluationErrorCode.Unspecified);
+        telemetry.TrackEvaluation(EvaluationReason.TargetingMatch, EvaluationErrorCode.Unspecified);
 
         var headerValue = telemetry.EncodedHeaderValue();
         Assert.NotNull(headerValue);

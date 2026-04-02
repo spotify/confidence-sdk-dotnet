@@ -11,7 +11,7 @@ public class ProtobufEncoderTests
     {
         var resolveTraces = new List<ResolveLatencyTraceData>
         {
-            new(MillisecondDuration: 150, Status: RequestStatus.Ok),
+            new(MillisecondDuration: 150, Status: RequestStatus.Success),
         };
         var evalTraces = new List<EvaluationTraceData>();
 
@@ -35,7 +35,7 @@ public class ProtobufEncoderTests
         var resolveTraces = new List<ResolveLatencyTraceData>();
         var evalTraces = new List<EvaluationTraceData>
         {
-            new(Reason: EvaluationReason.Match, ErrorCode: EvaluationErrorCode.Unspecified),
+            new(Reason: EvaluationReason.TargetingMatch, ErrorCode: EvaluationErrorCode.Unspecified),
         };
 
         var bytes = ProtobufEncoder.EncodeMonitoring(
@@ -56,12 +56,12 @@ public class ProtobufEncoderTests
     {
         var resolveTraces = new List<ResolveLatencyTraceData>
         {
-            new(MillisecondDuration: 100, Status: RequestStatus.Ok),
+            new(MillisecondDuration: 100, Status: RequestStatus.Success),
             new(MillisecondDuration: 200, Status: RequestStatus.Timeout),
         };
         var evalTraces = new List<EvaluationTraceData>
         {
-            new(Reason: EvaluationReason.Match, ErrorCode: EvaluationErrorCode.Unspecified),
+            new(Reason: EvaluationReason.TargetingMatch, ErrorCode: EvaluationErrorCode.Unspecified),
             new(Reason: EvaluationReason.Error, ErrorCode: EvaluationErrorCode.FlagNotFound),
         };
 

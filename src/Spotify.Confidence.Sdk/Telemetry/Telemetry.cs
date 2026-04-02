@@ -12,6 +12,7 @@ internal record ResolveLatencyTraceData(ulong MillisecondDuration, RequestStatus
 internal sealed class Telemetry
 {
     private const int MaxTraces = 100;
+    private static readonly string SdkVersion = GetSdkVersion();
 
     private readonly object _lock = new();
     private readonly Platform _platform;
@@ -70,10 +71,9 @@ internal sealed class Telemetry
             _resolveTraces = new List<ResolveLatencyTraceData>();
         }
 
-        var sdkVersion = GetSdkVersion();
         var bytes = ProtobufEncoder.EncodeMonitoring(
             _currentLibrary,
-            sdkVersion,
+            SdkVersion,
             _platform,
             resolveSnapshot,
             evalSnapshot);
@@ -87,46 +87,25 @@ internal sealed class Telemetry
     {
         if (errorMessage != null)
         {
-            var errorCode = MapErrorMessageToCode(errorMessage);
+            // Only match "not found" which is a well-known pattern from our own code.
+            // Everything else maps to General — no brittle string parsing.
+            var errorCode = errorMessage.Contains("not found", StringComparison.OrdinalIgnoreCase)
+                ? EvaluationErrorCode.FlagNotFound
+                : EvaluationErrorCode.General;
             return (EvaluationReason.Error, errorCode);
         }
 
-        var reason = apiReason switch
+        return apiReason switch
         {
-            "RESOLVE_REASON_MATCH" => EvaluationReason.Match,
-            "RESOLVE_REASON_UNSPECIFIED" => EvaluationReason.Unspecified_,
-            "RESOLVE_REASON_NO_SEGMENT_MATCH" => EvaluationReason.NoSegmentMatch,
-            "RESOLVE_REASON_NO_TREATMENT_MATCH" => EvaluationReason.NoSegmentMatch,
-            "RESOLVE_REASON_FLAG_ARCHIVED" => EvaluationReason.Archived,
-            "RESOLVE_REASON_TARGETING_KEY_ERROR" => EvaluationReason.TargetingKeyError,
-            "ERROR" => EvaluationReason.Error,
-            _ => EvaluationReason.Unspecified,
+            "RESOLVE_REASON_MATCH" => (EvaluationReason.TargetingMatch, EvaluationErrorCode.Unspecified),
+            "RESOLVE_REASON_NO_SEGMENT_MATCH" => (EvaluationReason.Default, EvaluationErrorCode.Unspecified),
+            "RESOLVE_REASON_NO_TREATMENT_MATCH" => (EvaluationReason.Default, EvaluationErrorCode.Unspecified),
+            "RESOLVE_REASON_STALE" => (EvaluationReason.Stale, EvaluationErrorCode.Unspecified),
+            "RESOLVE_REASON_FLAG_ARCHIVED" => (EvaluationReason.Disabled, EvaluationErrorCode.Unspecified),
+            "RESOLVE_REASON_TARGETING_KEY_ERROR" => (EvaluationReason.Error, EvaluationErrorCode.TargetingKeyMissing),
+            "ERROR" => (EvaluationReason.Error, EvaluationErrorCode.General),
+            _ => (EvaluationReason.Unspecified, EvaluationErrorCode.Unspecified),
         };
-
-        return (reason, EvaluationErrorCode.Unspecified);
-    }
-
-    private static EvaluationErrorCode MapErrorMessageToCode(string errorMessage)
-    {
-        if (errorMessage.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return EvaluationErrorCode.FlagNotFound;
-        }
-
-        if (errorMessage.Contains("parse", StringComparison.OrdinalIgnoreCase) ||
-            errorMessage.Contains("type mismatch", StringComparison.OrdinalIgnoreCase) ||
-            errorMessage.Contains("cannot convert", StringComparison.OrdinalIgnoreCase))
-        {
-            return EvaluationErrorCode.ParseError;
-        }
-
-        if (errorMessage.Contains("cancelled", StringComparison.OrdinalIgnoreCase) ||
-            errorMessage.Contains("canceled", StringComparison.OrdinalIgnoreCase))
-        {
-            return EvaluationErrorCode.GeneralError;
-        }
-
-        return EvaluationErrorCode.GeneralError;
     }
 
     private static string GetSdkVersion()
