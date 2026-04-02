@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.2.2...v0.3.0) (2026-04-02)
+
+
+### ✨ New Features
+
+* add telemetry to .NET SDK ([#38](https://github.com/spotify/confidence-sdk-dotnet/issues/38)) ([1405db6](https://github.com/spotify/confidence-sdk-dotnet/commit/1405db6c1f1732e2bbc5e5670d0984d1d89704f5))
+
 ## [0.2.2](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.2.1...v0.2.2) (2026-03-30)
 
 
