@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -13,6 +14,7 @@ using Spotify.Confidence.Sdk.Exceptions;
 using Spotify.Confidence.Sdk.Logging;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
+using Spotify.Confidence.Sdk.Telemetry;
 using Spotify.Confidence.Sdk.Utils;
 
 namespace Spotify.Confidence.Sdk;
@@ -27,11 +29,15 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
     private readonly string _clientSecret;
     private readonly JsonSerializerOptions _jsonOptions;
     private readonly ILogger<ConfidenceClient> _logger;
+    private readonly Telemetry.Telemetry? _telemetry;
     private bool _disposed;
     private const string RESOLVE_FLAGS_ENDPOINT = "v1/flags:resolve";
     private const string TRACK_EVENTS_ENDPOINT = "v1/events:publish";
     private const string SDK_ID = "SDK_ID_DOTNET_CONFIDENCE";
+    private const string TelemetryHeaderName = "X-CONFIDENCE-TELEMETRY";
     internal static readonly string SDK_VERSION = GetSdkVersion();
+
+    internal Telemetry.Telemetry? Telemetry => _telemetry;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfidenceClient"/> class.
@@ -76,6 +82,11 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
 
         ConfigureHttpClient(_resolveClient);
         ConfigureHttpClient(_trackingClient);
+
+        if (!options.TelemetryDisabled)
+        {
+            _telemetry = new Telemetry.Telemetry(Platform.DotNet);
+        }
 
         ConfidenceClientLogger.ClientInitialized(_logger, options.ResolveUrl, options.EventUrl, options.TimeoutSeconds, options.MaxRetries, null);
     }
@@ -197,13 +208,15 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
             var (baseFlagName, _) = DotNotationHelper.ParseDotNotation(flagKey);
 
             var request = new EvaluationRequest(baseFlagName, context, _clientSecret);
-            var response = await SendRequestAsync<ResolveResponse>(_resolveClient, RESOLVE_FLAGS_ENDPOINT, request, cancellationToken);
+            var response = await SendRequestAsync<ResolveResponse>(_resolveClient, RESOLVE_FLAGS_ENDPOINT, request, cancellationToken).ConfigureAwait(false);
 
             var flag = GetResolvedFlagOrDefault(response, baseFlagName);
             if (flag == null)
             {
                 ConfidenceClientLogger.FlagNotFound(_logger, flagKey, defaultValue, null);
-                return EvaluationResult.Failure(defaultValue, $"Flag '{baseFlagName}' not found in response");
+                var result = EvaluationResult.Failure(defaultValue, $"Flag '{baseFlagName}' not found in response");
+                TrackEvaluation(null, result.ErrorMessage);
+                return result;
             }
 
             // Use DotNotationHelper for consistent value extraction that handles
@@ -213,26 +226,36 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
             if (errorMessage != null)
             {
                 ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, null);
-                return EvaluationResult.Failure(defaultValue, errorMessage);
+                var result = EvaluationResult.Failure(defaultValue, errorMessage);
+                TrackEvaluation(flag.Reason, errorMessage);
+                return result;
             }
 
             ConfidenceClientLogger.FlagResolved(_logger, flagKey, typedValue, flag.Reason, flag.Variant, null);
-            return EvaluationResult.Success(typedValue, flag.Reason, flag.Variant);
+            var successResult = EvaluationResult.Success(typedValue, flag.Reason, flag.Variant);
+            TrackEvaluation(flag.Reason, null);
+            return successResult;
         }
         catch (OperationCanceledException ex)
         {
             ConfidenceClientLogger.FlagResolutionCancelled(_logger, flagKey, defaultValue, ex);
-            return EvaluationResult.Failure(defaultValue, "Request was cancelled", ex);
+            var result = EvaluationResult.Failure(defaultValue, "Request was cancelled", ex);
+            TrackEvaluation(null, result.ErrorMessage);
+            return result;
         }
         catch (ConfidenceException ex)
         {
             ConfidenceClientLogger.FlagResolutionFailedConfidence(_logger, flagKey, defaultValue, ex);
-            return EvaluationResult.Failure(defaultValue, ex.Message, ex);
+            var result = EvaluationResult.Failure(defaultValue, ex.Message, ex);
+            TrackEvaluation(null, result.ErrorMessage);
+            return result;
         }
         catch (Exception ex)
         {
             ConfidenceClientLogger.FlagResolutionFailedUnexpected(_logger, flagKey, defaultValue, ex);
-            return EvaluationResult.Failure(defaultValue, "An unexpected error occurred", ex);
+            var result = EvaluationResult.Failure(defaultValue, "An unexpected error occurred", ex);
+            TrackEvaluation(null, result.ErrorMessage);
+            return result;
         }
     }
 
@@ -280,23 +303,44 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         return flag;
     }
 
-    private async Task<T> SendRequestAsync<T>(HttpClient client, string path, object request, CancellationToken cancellationToken)
+    private async Task<T> SendRequestAsync<T>(HttpClient client, string path, object request, CancellationToken cancellationToken, bool attachTelemetry = false)
     {
         var baseUrl = client.BaseAddress?.ToString() ?? "unknown";
         ConfidenceClientLogger.SendingRequest(_logger, typeof(T).Name, baseUrl, path, null);
 
         try
         {
-            var response = await client.PostAsJsonAsync(
-                path,
-                request,
-                _jsonOptions,
-                cancellationToken);
+            var jsonContent = JsonContent.Create(request, options: _jsonOptions);
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, path)
+            {
+                Content = jsonContent,
+            };
+
+            if (attachTelemetry)
+            {
+                try
+                {
+                    if (_telemetry != null)
+                    {
+                        var headerValue = _telemetry.EncodedHeaderValue();
+                        if (headerValue != null)
+                        {
+                            httpRequest.Headers.TryAddWithoutValidation(TelemetryHeaderName, headerValue);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ConfidenceClientLogger.TelemetryError(_logger, ex);
+                }
+            }
+
+            var response = await client.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
             ConfidenceClientLogger.ReceivedSuccessfulResponse(_logger, (int)response.StatusCode, typeof(T).Name, null);
 
-            var result = await response.Content.ReadFromJsonAsync<T>(_jsonOptions, cancellationToken);
+            var result = await response.Content.ReadFromJsonAsync<T>(_jsonOptions, cancellationToken).ConfigureAwait(false);
             if (result is null)
             {
                 ConfidenceClientLogger.ReceivedNullResponse(_logger, typeof(T).Name, null);
@@ -328,6 +372,22 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         {
             ConfidenceClientLogger.RequestFailedUnexpected(_logger, typeof(T).Name, baseUrl, path, ex);
             throw new ConfidenceException("An unexpected error occurred", ex);
+        }
+    }
+
+    private void TrackEvaluation(string? apiReason, string? errorMessage)
+    {
+        try
+        {
+            if (_telemetry != null)
+            {
+                var (reason, errorCode) = Sdk.Telemetry.Telemetry.MapEvaluationReason(apiReason, errorMessage);
+                _telemetry.TrackEvaluation(reason, errorCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            ConfidenceClientLogger.TelemetryError(_logger, ex);
         }
     }
 
@@ -432,10 +492,39 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
         var (baseFlagName, _) = DotNotationHelper.ParseDotNotation(flagKey);
 
         var request = new EvaluationRequest(baseFlagName, context, _clientSecret);
-        var response = await SendRequestAsync<ResolveResponse>(_resolveClient, RESOLVE_FLAGS_ENDPOINT, request, cancellationToken);
 
-        var flag = GetResolvedFlagOrDefault(response, baseFlagName);
-        return flag;
+        var stopwatch = Stopwatch.StartNew();
+        RequestStatus resolveStatus = RequestStatus.Success;
+        try
+        {
+            var response = await SendRequestAsync<ResolveResponse>(_resolveClient, RESOLVE_FLAGS_ENDPOINT, request, cancellationToken, attachTelemetry: true).ConfigureAwait(false);
+            stopwatch.Stop();
+
+            var flag = GetResolvedFlagOrDefault(response, baseFlagName);
+            return flag;
+        }
+        catch (OperationCanceledException)
+        {
+            resolveStatus = RequestStatus.Timeout;
+            throw;
+        }
+        catch (Exception)
+        {
+            resolveStatus = RequestStatus.Error;
+            throw;
+        }
+        finally
+        {
+            stopwatch.Stop();
+            try
+            {
+                _telemetry?.TrackResolveLatency((ulong)stopwatch.ElapsedMilliseconds, resolveStatus);
+            }
+            catch (Exception ex)
+            {
+                ConfidenceClientLogger.TelemetryError(_logger, ex);
+            }
+        }
     }
 
     /// <summary>
@@ -458,11 +547,13 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
             // Parse dot-notation to get base flag name for error messages
             var (baseFlagName, _) = DotNotationHelper.ParseDotNotation(flagKey);
 
-            var flag = await ResolveFlagStructureAsync(flagKey, context, cancellationToken);
+            var flag = await ResolveFlagStructureAsync(flagKey, context, cancellationToken).ConfigureAwait(false);
             if (flag == null)
             {
                 ConfidenceClientLogger.FlagNotFound(_logger, flagKey, defaultValue, null);
-                return EvaluationResult.Failure(defaultValue, $"Flag '{baseFlagName}' not found in response");
+                var result = EvaluationResult.Failure(defaultValue, $"Flag '{baseFlagName}' not found in response");
+                TrackEvaluation(null, result.ErrorMessage);
+                return result;
             }
 
             var (value, errorMessage) = DotNotationHelper.ExtractTypedValue(flag, flagKey, defaultValue, _jsonOptions);
@@ -470,21 +561,29 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
             if (errorMessage != null)
             {
                 ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, null);
-                return EvaluationResult.Failure(defaultValue, errorMessage);
+                var result = EvaluationResult.Failure(defaultValue, errorMessage);
+                TrackEvaluation(flag.Reason, errorMessage);
+                return result;
             }
 
             ConfidenceClientLogger.FlagResolved(_logger, flagKey, value, flag.Reason, flag.Variant, null);
-            return EvaluationResult.Success(value, flag.Reason, flag.Variant);
+            var successResult = EvaluationResult.Success(value, flag.Reason, flag.Variant);
+            TrackEvaluation(flag.Reason, null);
+            return successResult;
         }
         catch (OperationCanceledException ex)
         {
             ConfidenceClientLogger.FlagResolutionCancelled(_logger, flagKey, defaultValue, ex);
-            return EvaluationResult.Failure(defaultValue, "Request was cancelled", ex);
+            var result = EvaluationResult.Failure(defaultValue, "Request was cancelled", ex);
+            TrackEvaluation(null, result.ErrorMessage);
+            return result;
         }
         catch (ConfidenceException ex)
         {
             ConfidenceClientLogger.FlagResolutionFailedConfidence(_logger, flagKey, defaultValue, ex);
-            return EvaluationResult.Failure(defaultValue, "Failed to communicate with Confidence API", ex);
+            var result = EvaluationResult.Failure(defaultValue, "Failed to communicate with Confidence API", ex);
+            TrackEvaluation(null, result.ErrorMessage);
+            return result;
         }
     }
 }

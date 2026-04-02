@@ -14,6 +14,7 @@ using Spotify.Confidence.OpenFeature.Logging;
 using Spotify.Confidence.Sdk;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
+using Spotify.Confidence.Sdk.Telemetry;
 
 namespace Spotify.Confidence.OpenFeature;
 
@@ -34,7 +35,13 @@ public class ConfidenceProvider : FeatureProvider
     public ConfidenceProvider(ConfidenceOptions options, ILogger<ConfidenceProvider>? logger = null)
     {
         _logger = logger ?? CreateDefaultLogger(options.LogLevel);
-        _confidenceClient = new ConfidenceClient(options, CreateConfidenceClientLogger(options.LogLevel));
+        var client = new ConfidenceClient(options, CreateConfidenceClientLogger(options.LogLevel));
+        if (client.Telemetry != null)
+        {
+            client.Telemetry.CurrentLibrary = Library.OpenFeature;
+        }
+
+        _confidenceClient = client;
         ConfidenceProviderLogger.ProviderInitialized(_logger, null);
     }
 
