@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
 using UnityOpenFeature.Core;
+using UnityOpenFeature.Telemetry;
 
 namespace UnityOpenFeature.Providers
 {
@@ -294,7 +295,11 @@ namespace UnityOpenFeature.Providers
         {
             var value = ResolveValueByDotNotation(flagKey);
             if (value == null)
-                return ResolutionDetails<T>.Error(flagKey, defaultValue, ErrorCode.FlagNotFound, $"Flag '{flagKey}' not found");
+            {
+                var errorResult = ResolutionDetails<T>.Error(flagKey, defaultValue, ErrorCode.FlagNotFound, $"Flag '{flagKey}' not found");
+                TrackEvaluation(null, errorResult.ErrorMessage);
+                return errorResult;
+            }
 
             var rootFlagKey = flagKey.Split('.')[0];
             var resolvedFlag = GetResolvedFlag(rootFlagKey);
@@ -315,6 +320,8 @@ namespace UnityOpenFeature.Providers
             catch (Exception ex)
             {
                 details = ResolutionDetails<T>.Error(flagKey, defaultValue, ErrorCode.ParseError, $"Cannot parse: {ex.Message}");
+                TrackEvaluation(resolvedFlag?.reason, details.ErrorMessage);
+                return details;
             }
 
             if (resolvedFlag != null)
@@ -325,6 +332,7 @@ namespace UnityOpenFeature.Providers
                 tryApply(resolvedFlag, rootFlagKey);
             }
 
+            TrackEvaluation(resolvedFlag?.reason, null);
             return details;
         }
 
@@ -395,6 +403,22 @@ namespace UnityOpenFeature.Providers
                 "ERROR" => UnityOpenFeature.Core.Reason.ERROR,
                 _ => UnityOpenFeature.Core.Reason.RESOLVE_REASON_UNSPECIFIED
             };
+        }
+
+        private void TrackEvaluation(string apiReason, string errorMessage)
+        {
+            try
+            {
+                if (apiClient?.Telemetry != null)
+                {
+                    var (reason, errorCode) = Telemetry.Telemetry.MapEvaluationReason(apiReason, errorMessage);
+                    apiClient.Telemetry.TrackEvaluation(reason, errorCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"Telemetry eval tracking error (best-effort): {ex.Message}");
+            }
         }
 
         private Dictionary<string, object> GetEvaluationContext()
