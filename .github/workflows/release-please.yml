@@ -14,13 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           fetch-depth: 0
 
       - name: Run release-please
         id: release-please-step
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -41,14 +41,14 @@ jobs:
     if: ${{ needs.release-please.outputs.release_created }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with: 
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
           ref: ${{ needs.release-please.outputs.release_tag }}
           fetch-depth: 0
           fetch-tags: true
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: |
             8.0.x
