@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Moq;
 using OpenFeature;
+using OpenFeature.Constant;
 using OpenFeature.Model;
 using Spotify.Confidence.Sdk;
 using Spotify.Confidence.Sdk.Models;
@@ -97,6 +98,8 @@ public class ConfidenceProviderTests
         Assert.Equal(flagKey, result.FlagKey);
         Assert.Equal(variant, result.Variant);
         Assert.Equal("TARGETING_MATCH", result.Reason);
+        Assert.Equal(ErrorType.None, result.ErrorType);
+        Assert.Null(result.ErrorMessage);
     }
 
     [Fact]
@@ -117,6 +120,122 @@ public class ConfidenceProviderTests
         Assert.Equal(defaultValue, result.Value);
         Assert.Equal(flagKey, result.FlagKey);
         Assert.Equal("Error resolving flag", result.Reason);
+    }
+
+    [Fact]
+    public async Task ResolveBooleanValueAsync_WhenSdkReturnsFailure_PropagatesErrorDetails()
+    {
+        // Arrange
+        const string flagKey = "test-flag";
+        const bool defaultValue = true;
+        const string errorMessage = "Flag 'test-flag' not found in response";
+
+        _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(flagKey, It.IsAny<bool>(), It.IsAny<ConfidenceContext>(), default))
+            .ReturnsAsync(EvaluationResult.Failure(defaultValue, errorMessage));
+
+        // Act
+        var result = await _provider.ResolveBooleanValueAsync(flagKey, defaultValue);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(defaultValue, result.Value);
+        Assert.Equal(flagKey, result.FlagKey);
+        Assert.Equal(ErrorType.General, result.ErrorType);
+        Assert.Equal(errorMessage, result.ErrorMessage);
+        Assert.Equal("ERROR", result.Reason);
+    }
+
+    [Fact]
+    public async Task ResolveStringValueAsync_WhenSdkReturnsFailure_PropagatesErrorDetails()
+    {
+        // Arrange
+        const string flagKey = "test-flag";
+        const string defaultValue = "default";
+        const string errorMessage = "Failed to communicate with Confidence API";
+
+        _mockClient.Setup(c => c.EvaluateStringFlagAsync(flagKey, It.IsAny<string>(), It.IsAny<ConfidenceContext>(), default))
+            .ReturnsAsync(EvaluationResult.Failure(defaultValue, errorMessage));
+
+        // Act
+        var result = await _provider.ResolveStringValueAsync(flagKey, defaultValue);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(defaultValue, result.Value);
+        Assert.Equal(flagKey, result.FlagKey);
+        Assert.Equal(ErrorType.General, result.ErrorType);
+        Assert.Equal(errorMessage, result.ErrorMessage);
+        Assert.Equal("ERROR", result.Reason);
+    }
+
+    [Fact]
+    public async Task ResolveIntegerValueAsync_WhenSdkReturnsFailure_PropagatesErrorDetails()
+    {
+        // Arrange
+        const string flagKey = "test-flag";
+        const int defaultValue = 42;
+        const string errorMessage = "Flag 'test-flag' not found in response";
+
+        _mockClient.Setup(c => c.EvaluateNumericFlagAsync(flagKey, It.IsAny<double>(), It.IsAny<ConfidenceContext>(), default))
+            .ReturnsAsync(EvaluationResult.Failure<double>(defaultValue, errorMessage));
+
+        // Act
+        var result = await _provider.ResolveIntegerValueAsync(flagKey, defaultValue);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(defaultValue, result.Value);
+        Assert.Equal(flagKey, result.FlagKey);
+        Assert.Equal(ErrorType.General, result.ErrorType);
+        Assert.Equal(errorMessage, result.ErrorMessage);
+        Assert.Equal("ERROR", result.Reason);
+    }
+
+    [Fact]
+    public async Task ResolveDoubleValueAsync_WhenSdkReturnsFailure_PropagatesErrorDetails()
+    {
+        // Arrange
+        const string flagKey = "test-flag";
+        const double defaultValue = 3.14;
+        const string errorMessage = "Failed to communicate with Confidence API";
+
+        _mockClient.Setup(c => c.EvaluateNumericFlagAsync(flagKey, It.IsAny<double>(), It.IsAny<ConfidenceContext>(), default))
+            .ReturnsAsync(EvaluationResult.Failure(defaultValue, errorMessage));
+
+        // Act
+        var result = await _provider.ResolveDoubleValueAsync(flagKey, defaultValue);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(defaultValue, result.Value);
+        Assert.Equal(flagKey, result.FlagKey);
+        Assert.Equal(ErrorType.General, result.ErrorType);
+        Assert.Equal(errorMessage, result.ErrorMessage);
+        Assert.Equal("ERROR", result.Reason);
+    }
+
+    [Fact]
+    public async Task ResolveStructureValueAsync_WhenSdkReturnsFailure_PropagatesErrorDetails()
+    {
+        // Arrange
+        const string flagKey = "test-flag";
+        var defaultStructure = Structure.Builder().Set("test", new Value("default")).Build();
+        var defaultValue = new Value(defaultStructure);
+        const string errorMessage = "Flag 'test-flag' not found in response";
+
+        _mockClient.Setup(c => c.EvaluateJsonFlagAsync(flagKey, It.IsAny<object>(), It.IsAny<ConfidenceContext>(), default))
+            .ReturnsAsync(EvaluationResult.Failure<object>(new Dictionary<string, object>(), errorMessage));
+
+        // Act
+        var result = await _provider.ResolveStructureValueAsync(flagKey, defaultValue);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(flagKey, result.FlagKey);
+        Assert.Equal(ErrorType.General, result.ErrorType);
+        Assert.Equal(errorMessage, result.ErrorMessage);
+        Assert.Equal("ERROR", result.Reason);
+        Assert.Equal("default", result.Value.AsStructure!.GetValue("test").AsString);
     }
 
     [Fact]
