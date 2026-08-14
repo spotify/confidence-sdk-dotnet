@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.3.0...v0.3.1) (2026-08-14)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** pin GitHub Actions to commit SHAs ([a3bf7d9](https://github.com/spotify/confidence-sdk-dotnet/commit/a3bf7d9e348b9b91686eac446ef4e29436805807))
+* propagate SDK error details through OpenFeature provider ([#45](https://github.com/spotify/confidence-sdk-dotnet/issues/45)) ([93b1aac](https://github.com/spotify/confidence-sdk-dotnet/commit/93b1aac07cd28116af63644d9f47804f9be39a05))
+
 ## [0.3.0](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.2.2...v0.3.0) (2026-04-02)
 
 
