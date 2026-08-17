@@ -1,7 +1,6 @@
 name: release-handling-workflow
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -11,20 +10,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  test-nuget-login:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Log in to NuGet
-        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
-        with:
-          user: ${{ secrets.NUGET_USER }}
-
   release-please:
-    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
