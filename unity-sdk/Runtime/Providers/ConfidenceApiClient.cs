@@ -28,7 +28,8 @@ namespace UnityOpenFeature.Providers
 
         private string sdkId = "SDK_ID_DOTNET_CONFIDENCE";
         private string sdkVersion = "0.1.1";
-        private string baseUrl = "https://resolver.confidence.dev";
+        public const string DefaultBaseUrl = ConfidenceEndpointUrls.DefaultBaseUrl;
+        private string baseUrl = DefaultBaseUrl;
         private string clientSecret;
 
         // Simple dictionary to store flag applies: flagKey -> AppliedFlag
@@ -44,7 +45,7 @@ namespace UnityOpenFeature.Providers
         // Private constructor - use Create() method instead
         private ConfidenceApiClient() { }
     
-        public static ConfidenceApiClient Create(string clientSecret)
+        public static ConfidenceApiClient Create(string clientSecret, string baseUrl = DefaultBaseUrl)
         {
             // Create a GameObject to host the client
             GameObject clientGO = new GameObject("ConfidenceApiClient");
@@ -53,6 +54,7 @@ namespace UnityOpenFeature.Providers
             // Add the client as a component
             ConfidenceApiClient client = clientGO.AddComponent<ConfidenceApiClient>();
             client.clientSecret = clientSecret;
+            client.baseUrl = ConfidenceEndpointUrls.NormalizeBaseUrl(baseUrl);
 
             return client;
         }
@@ -84,7 +86,7 @@ namespace UnityOpenFeature.Providers
 
         public async Task ResolveFlagsAsync(List<string> flagKeys, Dictionary<string, object> evaluationContext, Action<ResolveFlagsResponse, string> callback)
         {
-            string url = $"{baseUrl}/v1/flags:resolve";
+            string url = ConfidenceEndpointUrls.Build(baseUrl, ConfidenceEndpointUrls.ResolveFlagsPath);
 
             // Create POST request body - add "flags/" prefix for backend
             var backendFlags = flagKeys.Select(flag => $"flags/{flag}").ToList();
@@ -211,7 +213,7 @@ namespace UnityOpenFeature.Providers
                 var resolveToken = tokenGroup.Key;
                 var flagsToSend = tokenGroup.Value;
 
-                string url = $"{baseUrl}/v1/flags:apply";
+                string url = ConfidenceEndpointUrls.Build(baseUrl, ConfidenceEndpointUrls.ApplyFlagsPath);
 
                 var requestBody = new ApplyFlagsRequest
                 {

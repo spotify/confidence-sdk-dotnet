@@ -64,6 +64,14 @@ unity-sdk/
    var flagValue = client.GetBooleanValue("my-feature-flag", false);
    ```
 
+   To use a custom resolver base URL for both resolve and apply logging requests:
+   ```csharp
+   var provider = new ConfidenceProvider(
+       "your-client-secret",
+       "https://confidence-proxy.example.com/resolver");
+   ```
+   The SDK appends `v1/flags:resolve` and `v1/flags:apply`.
+
 ## Dependencies
 
 - Unity 2020.3+
