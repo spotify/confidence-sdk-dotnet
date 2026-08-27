@@ -59,4 +59,45 @@ public class UnityTelemetryTests
         Assert.Equal((EvaluationReason)expectedReason, result.reason);
         Assert.Equal((EvaluationErrorCode)expectedErrorCode, result.errorCode);
     }
+
+    [Fact]
+    public void EncodedHeaderValue_CapsCombinedTraceCount()
+    {
+        var telemetry = new UnityOpenFeature.Telemetry.Telemetry(Platform.Unity, "1.2.3");
+        for (int i = 0; i < 75; i++)
+        {
+            telemetry.TrackEvaluation(EvaluationReason.TargetingMatch, EvaluationErrorCode.Unspecified);
+            telemetry.TrackResolveLatency(ulong.MaxValue, RequestStatus.Success);
+        }
+
+        var header = telemetry.EncodedHeaderValue();
+
+        Assert.NotNull(header);
+        Assert.Equal(100, CountTraces(header));
+        Assert.True(header.Length < 4096);
+    }
+
+    private static int CountTraces(string header)
+    {
+        var input = new CodedInputStream(Convert.FromBase64String(header));
+        Assert.Equal(WireFormat.MakeTag(1, WireFormat.WireType.LengthDelimited), input.ReadTag());
+        var libraryTraces = new CodedInputStream(input.ReadBytes().ToByteArray());
+        int traceCount = 0;
+
+        while (!libraryTraces.IsAtEnd)
+        {
+            var tag = libraryTraces.ReadTag();
+            if (WireFormat.GetTagFieldNumber(tag) == 3)
+            {
+                traceCount++;
+                libraryTraces.ReadBytes();
+            }
+            else
+            {
+                libraryTraces.SkipLastField();
+            }
+        }
+
+        return traceCount;
+    }
 }

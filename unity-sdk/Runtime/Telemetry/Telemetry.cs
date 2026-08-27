@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using UnityOpenFeature.Core;
@@ -30,7 +32,7 @@ namespace UnityOpenFeature.Telemetry
 
     internal sealed class Telemetry
     {
-        private const int MaxTraces = 100;
+        private const int MaxBufferedTraces = 100;
 
         private readonly object _lock = new object();
         private readonly Library _library;
@@ -38,6 +40,7 @@ namespace UnityOpenFeature.Telemetry
         private readonly string _sdkVersion;
         private List<EvaluationTraceData> _evalTraces = new List<EvaluationTraceData>();
         private List<ResolveLatencyTraceData> _resolveTraces = new List<ResolveLatencyTraceData>();
+        private int _traceCount;
 
         internal Telemetry(Platform platform, string sdkVersion, Library library = Library.OpenFeature)
         {
@@ -50,9 +53,10 @@ namespace UnityOpenFeature.Telemetry
         {
             lock (_lock)
             {
-                if (_evalTraces.Count < MaxTraces)
+                if (_traceCount < MaxBufferedTraces)
                 {
                     _evalTraces.Add(new EvaluationTraceData(reason, errorCode));
+                    _traceCount++;
                 }
             }
         }
@@ -61,14 +65,15 @@ namespace UnityOpenFeature.Telemetry
         {
             lock (_lock)
             {
-                if (_resolveTraces.Count < MaxTraces)
+                if (_traceCount < MaxBufferedTraces)
                 {
                     _resolveTraces.Add(new ResolveLatencyTraceData(durationMs, status));
+                    _traceCount++;
                 }
             }
         }
 
-        internal string EncodedHeaderValue()
+        internal string? EncodedHeaderValue()
         {
             List<EvaluationTraceData> evalSnapshot;
             List<ResolveLatencyTraceData> resolveSnapshot;
@@ -84,6 +89,7 @@ namespace UnityOpenFeature.Telemetry
                 resolveSnapshot = _resolveTraces;
                 _evalTraces = new List<EvaluationTraceData>();
                 _resolveTraces = new List<ResolveLatencyTraceData>();
+                _traceCount = 0;
             }
 
             var bytes = ProtobufEncoder.EncodeMonitoring(
