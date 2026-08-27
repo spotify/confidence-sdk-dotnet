@@ -1,5 +1,6 @@
 namespace UnityOpenFeature.Telemetry
 {
+    // Keep values aligned with confidence/telemetry/v1/types/v1/types.proto in epx-flags-resolver.
     internal enum Platform
     {
         Unspecified = 0,
