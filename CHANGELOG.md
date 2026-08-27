@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.2](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.3.1...v0.3.2) (2026-08-27)
+
+
+### 🐛 Bug Fixes
+
+* support custom resolver URLs ([#48](https://github.com/spotify/confidence-sdk-dotnet/issues/48)) ([b2533a1](https://github.com/spotify/confidence-sdk-dotnet/commit/b2533a1bbedcc332bc70b0dc83b9bdead0e9a736))
+
+## [0.3.1](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.3.0...v0.3.1) (2026-08-14)
+
+
+### 🐛 Bug Fixes
+
+* **ci:** pin GitHub Actions to commit SHAs ([a3bf7d9](https://github.com/spotify/confidence-sdk-dotnet/commit/a3bf7d9e348b9b91686eac446ef4e29436805807))
+* propagate SDK error details through OpenFeature provider ([#45](https://github.com/spotify/confidence-sdk-dotnet/issues/45)) ([93b1aac](https://github.com/spotify/confidence-sdk-dotnet/commit/93b1aac07cd28116af63644d9f47804f9be39a05))
+
+## [0.3.0](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.2.2...v0.3.0) (2026-04-02)
+
+
+### ✨ New Features
+
+* add telemetry to .NET SDK ([#38](https://github.com/spotify/confidence-sdk-dotnet/issues/38)) ([1405db6](https://github.com/spotify/confidence-sdk-dotnet/commit/1405db6c1f1732e2bbc5e5670d0984d1d89704f5))
+
 ## [0.2.2](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.2.1...v0.2.2) (2026-03-30)
 
 

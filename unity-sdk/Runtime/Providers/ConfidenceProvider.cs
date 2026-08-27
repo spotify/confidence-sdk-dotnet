@@ -20,15 +20,17 @@ namespace UnityOpenFeature.Providers
         public event Action OnReady;
 
         [SerializeField] private string clientSecret;
+        [SerializeField] private string baseUrl = ConfidenceApiClient.DefaultBaseUrl;
         private ConfidenceApiClient apiClient;
 
         private Dictionary<string, ConfidenceApiClient.ResolvedFlag> flagDictionary = new Dictionary<string, ConfidenceApiClient.ResolvedFlag>();
         private string resolveToken;
 
-        public ConfidenceProvider(string clientSecret)
+        public ConfidenceProvider(string clientSecret, string baseUrl = ConfidenceApiClient.DefaultBaseUrl)
         {
             this.clientSecret = clientSecret;
-            this.apiClient = ConfidenceApiClient.Create(clientSecret);
+            this.baseUrl = ConfidenceEndpointUrls.NormalizeBaseUrl(baseUrl);
+            this.apiClient = ConfidenceApiClient.Create(clientSecret, this.baseUrl);
             InitializeDictionary();
         }
 

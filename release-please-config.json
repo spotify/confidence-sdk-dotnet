@@ -10,7 +10,12 @@
         "README.md",
         "src/Spotify.Confidence.Sdk/Spotify.Confidence.Sdk.csproj",
         "src/Spotify.Confidence.OpenFeature/Spotify.Confidence.OpenFeature.csproj",
-        "tests/Spotify.Confidence.Sdk.Tests/ConfidenceClientTests.cs"
+        "tests/Spotify.Confidence.Sdk.Tests/ConfidenceClientTests.cs",
+        {
+          "type": "json",
+          "path": "unity-sdk/package.json",
+          "jsonpath": "$.version"
+        }
       ]
     }
   },

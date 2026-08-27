@@ -32,14 +32,14 @@ public class ConfidenceOptions
     }
 
     /// <summary>
-    /// Gets or sets the base URL for the Confidence API.
-    /// This is automatically set based on the Region property.
+    /// Gets or sets the base URL for the Confidence flag resolver.
+    /// The SDK appends v1/flags:resolve to this URL. This is automatically set based on the Region property.
     /// </summary>
     public string ResolveUrl { get; set; }
 
     /// <summary>
     /// Gets or sets the base URL for event tracking.
-    /// This is automatically set based on the Region property.
+    /// The SDK appends v1/events:publish to this URL. This is automatically set based on the Region property.
     /// </summary>
     public string EventUrl { get; set; }
 
@@ -60,6 +60,13 @@ public class ConfidenceOptions
     /// Defaults to Information level.
     /// </summary>
     public LogLevel LogLevel { get; set; } = LogLevel.Information;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether telemetry collection is disabled.
+    /// When true, no telemetry data will be collected or sent.
+    /// Defaults to false (telemetry enabled).
+    /// </summary>
+    public bool TelemetryDisabled { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfidenceOptions"/> class.

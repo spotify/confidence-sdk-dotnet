@@ -14,6 +14,7 @@ using Spotify.Confidence.OpenFeature.Logging;
 using Spotify.Confidence.Sdk;
 using Spotify.Confidence.Sdk.Models;
 using Spotify.Confidence.Sdk.Options;
+using Spotify.Confidence.Sdk.Telemetry;
 
 namespace Spotify.Confidence.OpenFeature;
 
@@ -34,7 +35,13 @@ public class ConfidenceProvider : FeatureProvider
     public ConfidenceProvider(ConfidenceOptions options, ILogger<ConfidenceProvider>? logger = null)
     {
         _logger = logger ?? CreateDefaultLogger(options.LogLevel);
-        _confidenceClient = new ConfidenceClient(options, CreateConfidenceClientLogger(options.LogLevel));
+        var client = new ConfidenceClient(options, CreateConfidenceClientLogger(options.LogLevel));
+        if (client.Telemetry != null)
+        {
+            client.Telemetry.CurrentLibrary = Library.OpenFeature;
+        }
+
+        _confidenceClient = client;
         ConfidenceProviderLogger.ProviderInitialized(_logger, null);
     }
 
@@ -60,6 +67,17 @@ public class ConfidenceProvider : FeatureProvider
         try
         {
             var result = await _confidenceClient.EvaluateBooleanFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
+            if (!result.IsSuccess)
+            {
+                ConfidenceProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, result.Exception);
+                return new ResolutionDetails<bool>(
+                    flagKey,
+                    result.Value,
+                    ErrorType.General,
+                    reason: result.Reason ?? "ERROR",
+                    errorMessage: result.ErrorMessage);
+            }
+
             ConfidenceProviderLogger.ResolvedBooleanFlag(_logger, flagKey, result.Value, null);
             return new ResolutionDetails<bool>(
                 flagKey,
@@ -86,6 +104,17 @@ public class ConfidenceProvider : FeatureProvider
         try
         {
             var result = await _confidenceClient.EvaluateStringFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
+            if (!result.IsSuccess)
+            {
+                ConfidenceProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, result.Exception);
+                return new ResolutionDetails<string>(
+                    flagKey,
+                    result.Value,
+                    ErrorType.General,
+                    reason: result.Reason ?? "ERROR",
+                    errorMessage: result.ErrorMessage);
+            }
+
             ConfidenceProviderLogger.ResolvedStringFlag(_logger, flagKey, result.Value, null);
             return new ResolutionDetails<string>(
                 flagKey,
@@ -112,6 +141,17 @@ public class ConfidenceProvider : FeatureProvider
         try
         {
             var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
+            if (!result.IsSuccess)
+            {
+                ConfidenceProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, result.Exception);
+                return new ResolutionDetails<int>(
+                    flagKey,
+                    (int)result.Value,
+                    ErrorType.General,
+                    reason: result.Reason ?? "ERROR",
+                    errorMessage: result.ErrorMessage);
+            }
+
             var intValue = (int)result.Value;
             ConfidenceProviderLogger.ResolvedIntegerFlag(_logger, flagKey, intValue, null);
             return new ResolutionDetails<int>(
@@ -139,6 +179,17 @@ public class ConfidenceProvider : FeatureProvider
         try
         {
             var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
+            if (!result.IsSuccess)
+            {
+                ConfidenceProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, result.Exception);
+                return new ResolutionDetails<double>(
+                    flagKey,
+                    result.Value,
+                    ErrorType.General,
+                    reason: result.Reason ?? "ERROR",
+                    errorMessage: result.ErrorMessage);
+            }
+
             ConfidenceProviderLogger.ResolvedDoubleFlag(_logger, flagKey, result.Value, null);
             return new ResolutionDetails<double>(
                 flagKey,
@@ -165,6 +216,17 @@ public class ConfidenceProvider : FeatureProvider
         try
         {
             var result = await _confidenceClient.EvaluateJsonFlagAsync(flagKey, defaultValue.AsObject ?? new Dictionary<string, object>(), CreateConfidenceContext(context), cancellationToken);
+            if (!result.IsSuccess)
+            {
+                ConfidenceProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, result.Exception);
+                return new ResolutionDetails<Value>(
+                    flagKey,
+                    defaultValue,
+                    ErrorType.General,
+                    reason: result.Reason ?? "ERROR",
+                    errorMessage: result.ErrorMessage);
+            }
+
             var structure = ConvertToStructure(result.Value);
             var value = new Value(structure);
             ConfidenceProviderLogger.ResolvedStructureFlag(_logger, flagKey, null);

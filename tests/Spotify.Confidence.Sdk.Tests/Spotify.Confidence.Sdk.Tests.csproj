@@ -27,10 +27,15 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Moq" Version="4.20.70" />
+    <PackageReference Include="Google.Protobuf" Version="3.28.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Spotify.Confidence.Sdk\Spotify.Confidence.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\unity-sdk\Runtime\Providers\ConfidenceEndpointUrls.cs" Link="Unity\ConfidenceEndpointUrls.cs" />
   </ItemGroup>
 
 </Project>
