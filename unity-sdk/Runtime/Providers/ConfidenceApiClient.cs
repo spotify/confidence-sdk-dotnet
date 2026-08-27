@@ -30,7 +30,7 @@ namespace UnityOpenFeature.Providers
     {
 
         private string sdkId = "SDK_ID_DOTNET_CONFIDENCE";
-        private string sdkVersion = "0.1.1";
+        private const string SdkVersion = "0.3.2"; // x-release-please-version
         public const string DefaultBaseUrl = ConfidenceEndpointUrls.DefaultBaseUrl;
         private string baseUrl = DefaultBaseUrl;
         private string clientSecret;
@@ -51,7 +51,10 @@ namespace UnityOpenFeature.Providers
         // Private constructor - use Create() method instead
         private ConfidenceApiClient() { }
     
-        public static ConfidenceApiClient Create(string clientSecret, string baseUrl = DefaultBaseUrl)
+        public static ConfidenceApiClient Create(
+            string clientSecret,
+            string baseUrl = DefaultBaseUrl,
+            bool disableTelemetry = false)
         {
             // Create a GameObject to host the client
             GameObject clientGO = new GameObject("ConfidenceApiClient");
@@ -60,8 +63,11 @@ namespace UnityOpenFeature.Providers
             // Add the client as a component
             ConfidenceApiClient client = clientGO.AddComponent<ConfidenceApiClient>();
             client.clientSecret = clientSecret;
-            client.Telemetry = new Telemetry.Telemetry(Platform.DotNet, client.sdkVersion);
             client.baseUrl = ConfidenceEndpointUrls.NormalizeBaseUrl(baseUrl);
+            if (!disableTelemetry)
+            {
+                client.Telemetry = new Telemetry.Telemetry(Platform.Unity, SdkVersion);
+            }
 
             return client;
         }
@@ -107,83 +113,96 @@ namespace UnityOpenFeature.Providers
                 sdk = new SdkInfo
                 {
                     id = sdkId,
-                    version = sdkVersion
+                    version = SdkVersion
                 }
             };
 
             string jsonBody = JsonConvert.SerializeObject(requestBody);
             var stopwatch = Stopwatch.StartNew();
-            RequestStatus resolveStatus = RequestStatus.Ok;
+            RequestStatus resolveStatus = RequestStatus.Success;
+            bool requestCompleted = false;
 
-            using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
+            try
             {
-                // Set headers
-                request.SetRequestHeader("Content-Type", "application/json");
-                request.SetRequestHeader("Accept", "application/json");
-
-                // Attach telemetry header
-                try
+                using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
                 {
-                    if (Telemetry != null)
-                    {
-                        var headerValue = Telemetry.EncodedHeaderValue();
-                        if (headerValue != null)
-                        {
-                            request.SetRequestHeader(TelemetryHeaderName, headerValue);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.Log($"Telemetry header error (best-effort): {ex.Message}");
-                }
+                    // Set headers
+                    request.SetRequestHeader("Content-Type", "application/json");
+                    request.SetRequestHeader("Accept", "application/json");
 
-                request.downloadHandler = new DownloadHandlerBuffer();
-
-                // Set upload handler with JSON body
-                request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
-
-                var operation = request.SendWebRequest();
-                while (!operation.isDone)
-                {
-                    await Task.Delay(100); // Small delay to prevent busy waiting
-                }
-
-                stopwatch.Stop();
-
-                if (request.result == UnityWebRequest.Result.Success)
-                {
+                    // Attach telemetry header
                     try
                     {
-                        string jsonResponse = request.downloadHandler.text;
-
-                        // Parse the JSON response
-                        var responseData = JsonConvert.DeserializeObject<ResolveFlagsResponse>(jsonResponse);
-
-                        callback?.Invoke(responseData, null);
+                        if (Telemetry != null)
+                        {
+                            var headerValue = Telemetry.EncodedHeaderValue();
+                            if (headerValue != null)
+                            {
+                                request.SetRequestHeader(TelemetryHeaderName, headerValue);
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
+                        Debug.Log($"Telemetry header error (best-effort): {ex.Message}");
+                    }
+
+                    request.downloadHandler = new DownloadHandlerBuffer();
+
+                    // Set upload handler with JSON body
+                    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
+
+                    var operation = request.SendWebRequest();
+                    while (!operation.isDone)
+                    {
+                        await Task.Delay(100); // Small delay to prevent busy waiting
+                    }
+
+                    requestCompleted = true;
+                    if (request.result == UnityWebRequest.Result.Success)
+                    {
+                        ResolveFlagsResponse responseData;
+                        try
+                        {
+                            string jsonResponse = request.downloadHandler.text;
+
+                            // Parse the JSON response
+                            responseData = JsonConvert.DeserializeObject<ResolveFlagsResponse>(jsonResponse);
+                        }
+                        catch (Exception ex)
+                        {
+                            resolveStatus = RequestStatus.Error;
+                            callback?.Invoke(null, $"Failed to parse response: {ex.Message}");
+                            return;
+                        }
+
+                        callback?.Invoke(responseData, null);
+                    }
+                    else
+                    {
                         resolveStatus = RequestStatus.Error;
-                        callback?.Invoke(null, $"Failed to parse response: {ex.Message}");
+                        string errorMsg = $"Network request failed: {request.error}";
+                        callback?.Invoke(null, errorMsg);
                     }
                 }
-                else
+            }
+            finally
+            {
+                stopwatch.Stop();
+                if (!requestCompleted)
                 {
                     resolveStatus = RequestStatus.Error;
-                    string errorMsg = $"Network request failed: {request.error}";
-                    callback?.Invoke(null, errorMsg);
                 }
-            }
 
-            // Track resolve latency (best-effort)
-            try
-            {
-                Telemetry?.TrackResolveLatency((ulong)stopwatch.ElapsedMilliseconds, resolveStatus);
-            }
-            catch (Exception ex)
-            {
-                Debug.Log($"Telemetry latency tracking error (best-effort): {ex.Message}");
+                // Track resolve latency (best-effort)
+                try
+                {
+                    Telemetry?.TrackResolveLatency((ulong)stopwatch.ElapsedMilliseconds, resolveStatus);
+                }
+                catch (Exception ex)
+                {
+                    Debug.Log($"Telemetry latency tracking error (best-effort): {ex.Message}");
+                }
             }
         }
 
@@ -265,7 +284,7 @@ namespace UnityOpenFeature.Providers
                     sdk = new SdkInfo
                     {
                         id = sdkId,
-                        version = sdkVersion
+                        version = SdkVersion
                     }
                 };
 

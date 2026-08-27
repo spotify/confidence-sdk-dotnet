@@ -3,7 +3,7 @@ namespace UnityOpenFeature.Telemetry
     internal enum Platform
     {
         Unspecified = 0,
-        DotNet = 12,
+        Unity = 13,
     }
 
     internal enum Library
@@ -17,27 +17,28 @@ namespace UnityOpenFeature.Telemetry
     {
         Unspecified = 0,
         ResolveLatency = 1,
-        EvaluationOutcome = 2,
+        FlagEvaluation = 3,
     }
 
     internal enum RequestStatus
     {
         Unspecified = 0,
-        Ok = 1,
-        Timeout = 2,
-        Error = 3,
+        Success = 1,
+        Error = 2,
+        Timeout = 3,
+        Cached = 4,
     }
 
     internal enum EvaluationReason
     {
         Unspecified = 0,
-        Match = 1,
-        Unspecified_ = 2,
-        NoSegmentMatch = 3,
-        Archived = 4,
-        TargetingKeyError = 5,
-        ProviderNotReady = 6,
-        DefaultValue = 7,
+        TargetingMatch = 1,
+        Default = 2,
+        Stale = 3,
+        Disabled = 4,
+        Cached = 5,
+        Static = 6,
+        Split = 7,
         Error = 8,
     }
 
@@ -48,8 +49,9 @@ namespace UnityOpenFeature.Telemetry
         FlagNotFound = 2,
         ParseError = 3,
         TypeMismatch = 4,
-        GeneralError = 5,
+        TargetingKeyMissing = 5,
         InvalidContext = 6,
-        TargetingKeyMissing = 7,
+        ProviderFatal = 7,
+        General = 8,
     }
 }

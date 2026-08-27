@@ -112,7 +112,7 @@ namespace UnityOpenFeature.Telemetry
             using (var ms = new MemoryStream())
             {
                 WriteTag(ms, 1, WireTypeVarint);
-                WriteVarint(ms, (ulong)TraceId.EvaluationOutcome);
+                WriteVarint(ms, (ulong)TraceId.FlagEvaluation);
 
                 var evalTraceBytes = EncodeEvalTraceBody(data);
                 if (evalTraceBytes.Length > 0)

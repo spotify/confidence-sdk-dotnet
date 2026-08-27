@@ -36,6 +36,11 @@
 
   <ItemGroup>
     <Compile Include="..\..\unity-sdk\Runtime\Providers\ConfidenceEndpointUrls.cs" Link="Unity\ConfidenceEndpointUrls.cs" />
+    <Compile Include="..\..\unity-sdk\Runtime\Core\ErrorCode.cs" Link="Unity\Core\ErrorCode.cs" />
+    <Compile Include="..\..\unity-sdk\Runtime\Core\Reason.cs" Link="Unity\Core\Reason.cs" />
+    <Compile Include="..\..\unity-sdk\Runtime\Telemetry\ProtobufEncoder.cs" Link="Unity\Telemetry\ProtobufEncoder.cs" />
+    <Compile Include="..\..\unity-sdk\Runtime\Telemetry\Telemetry.cs" Link="Unity\Telemetry\Telemetry.cs" />
+    <Compile Include="..\..\unity-sdk\Runtime\Telemetry\TelemetryEnums.cs" Link="Unity\Telemetry\TelemetryEnums.cs" />
   </ItemGroup>
 
 </Project>

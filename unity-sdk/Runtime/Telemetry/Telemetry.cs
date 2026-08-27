@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityOpenFeature.Core;
 
 namespace UnityOpenFeature.Telemetry
 {
@@ -32,20 +33,15 @@ namespace UnityOpenFeature.Telemetry
         private const int MaxTraces = 100;
 
         private readonly object _lock = new object();
+        private readonly Library _library;
         private readonly Platform _platform;
         private readonly string _sdkVersion;
         private List<EvaluationTraceData> _evalTraces = new List<EvaluationTraceData>();
         private List<ResolveLatencyTraceData> _resolveTraces = new List<ResolveLatencyTraceData>();
-        private volatile Library _currentLibrary = Library.OpenFeature;
 
-        internal Library CurrentLibrary
+        internal Telemetry(Platform platform, string sdkVersion, Library library = Library.OpenFeature)
         {
-            get { return _currentLibrary; }
-            set { _currentLibrary = value; }
-        }
-
-        internal Telemetry(Platform platform, string sdkVersion)
-        {
+            _library = library;
             _platform = platform;
             _sdkVersion = sdkVersion;
         }
@@ -91,7 +87,7 @@ namespace UnityOpenFeature.Telemetry
             }
 
             var bytes = ProtobufEncoder.EncodeMonitoring(
-                _currentLibrary,
+                _library,
                 _sdkVersion,
                 _platform,
                 resolveSnapshot,
@@ -100,57 +96,55 @@ namespace UnityOpenFeature.Telemetry
             return Convert.ToBase64String(bytes);
         }
 
-        internal static (EvaluationReason reason, EvaluationErrorCode errorCode) MapEvaluationReason(
-            string apiReason,
-            string errorMessage)
+        internal static (EvaluationReason reason, EvaluationErrorCode errorCode) MapEvaluationResult(
+            Reason reason,
+            ErrorCode errorCode)
         {
-            if (errorMessage != null)
+            if (errorCode != ErrorCode.None)
             {
-                var errorCode = MapErrorMessageToCode(errorMessage);
-                return (EvaluationReason.Error, errorCode);
+                return (EvaluationReason.Error, MapErrorCode(errorCode));
             }
 
-            EvaluationReason reason;
-            switch (apiReason)
+            switch (reason)
             {
-                case "RESOLVE_REASON_MATCH":
-                    reason = EvaluationReason.Match;
-                    break;
-                case "RESOLVE_REASON_UNSPECIFIED":
-                    reason = EvaluationReason.Unspecified_;
-                    break;
-                case "RESOLVE_REASON_NO_SEGMENT_MATCH":
-                case "RESOLVE_REASON_NO_TREATMENT_MATCH":
-                    reason = EvaluationReason.NoSegmentMatch;
-                    break;
-                case "RESOLVE_REASON_FLAG_ARCHIVED":
-                    reason = EvaluationReason.Archived;
-                    break;
-                case "RESOLVE_REASON_TARGETING_KEY_ERROR":
-                    reason = EvaluationReason.TargetingKeyError;
-                    break;
-                case "ERROR":
-                    reason = EvaluationReason.Error;
-                    break;
+                case Reason.RESOLVE_REASON_MATCH:
+                    return (EvaluationReason.TargetingMatch, EvaluationErrorCode.Unspecified);
+                case Reason.RESOLVE_REASON_NO_SEGMENT_MATCH:
+                case Reason.RESOLVE_REASON_NO_TREATMENT_MATCH:
+                case Reason.DEFAULT:
+                    return (EvaluationReason.Default, EvaluationErrorCode.Unspecified);
+                case Reason.RESOLVE_REASON_STALE:
+                    return (EvaluationReason.Stale, EvaluationErrorCode.Unspecified);
+                case Reason.RESOLVE_REASON_FLAG_ARCHIVED:
+                    return (EvaluationReason.Disabled, EvaluationErrorCode.Unspecified);
+                case Reason.RESOLVE_REASON_TARGETING_KEY_ERROR:
+                    return (EvaluationReason.Error, EvaluationErrorCode.TargetingKeyMissing);
+                case Reason.ERROR:
+                    return (EvaluationReason.Error, EvaluationErrorCode.General);
                 default:
-                    reason = EvaluationReason.Unspecified;
-                    break;
+                    return (EvaluationReason.Unspecified, EvaluationErrorCode.Unspecified);
             }
-
-            return (reason, EvaluationErrorCode.Unspecified);
         }
 
-        private static EvaluationErrorCode MapErrorMessageToCode(string errorMessage)
+        private static EvaluationErrorCode MapErrorCode(ErrorCode errorCode)
         {
-            var lower = errorMessage.ToLowerInvariant();
-
-            if (lower.Contains("not found"))
-                return EvaluationErrorCode.FlagNotFound;
-
-            if (lower.Contains("parse") || lower.Contains("type mismatch") || lower.Contains("cannot convert"))
-                return EvaluationErrorCode.ParseError;
-
-            return EvaluationErrorCode.GeneralError;
+            switch (errorCode)
+            {
+                case ErrorCode.ProviderNotReady:
+                    return EvaluationErrorCode.ProviderNotReady;
+                case ErrorCode.FlagNotFound:
+                    return EvaluationErrorCode.FlagNotFound;
+                case ErrorCode.ParseError:
+                    return EvaluationErrorCode.ParseError;
+                case ErrorCode.TypeMismatch:
+                    return EvaluationErrorCode.TypeMismatch;
+                case ErrorCode.TargetingKeyMissing:
+                    return EvaluationErrorCode.TargetingKeyMissing;
+                case ErrorCode.InvalidContext:
+                    return EvaluationErrorCode.InvalidContext;
+                default:
+                    return EvaluationErrorCode.General;
+            }
         }
     }
 }
