@@ -68,6 +68,29 @@ public class ConfidenceClientTests
     }
 
     [Fact]
+    public void Constructor_WithCustomEndpointBasePaths_PreservesFullRequestUrls()
+    {
+        // Arrange
+        var options = new ConfidenceOptions
+        {
+            ClientSecret = "test-client-secret",
+            ResolveUrl = "https://resolver.test/custom",
+            EventUrl = "https://events.test/custom",
+            LogLevel = LogLevel.None
+        };
+
+        // Act
+        using var client = new ConfidenceClient(options);
+
+        // Assert
+        var resolveClient = GetHttpClient(client, "_resolveClient");
+        var trackingClient = GetHttpClient(client, "_trackingClient");
+
+        Assert.Equal("https://resolver.test/custom/v1/flags:resolve", new Uri(resolveClient.BaseAddress!, "v1/flags:resolve").ToString());
+        Assert.Equal("https://events.test/custom/v1/events:publish", new Uri(trackingClient.BaseAddress!, "v1/events:publish").ToString());
+    }
+
+    [Fact]
     public async Task EvaluateBooleanFlagAsync_SuccessfulResponse_ReturnsResult()
     {
         // Arrange
@@ -460,6 +483,15 @@ public class ConfidenceClientTests
                     req.RequestUri != null &&
                     req.RequestUri.ToString().EndsWith(path)),
                 ItExpr.IsAny<CancellationToken>());
+    }
+
+    private static HttpClient GetHttpClient(ConfidenceClient client, string fieldName)
+    {
+        var field = typeof(ConfidenceClient).GetField(
+            fieldName,
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+
+        return Assert.IsType<HttpClient>(field?.GetValue(client));
     }
 
     [Fact]

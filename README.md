@@ -113,6 +113,17 @@ await client.TrackAsync("button-clicked", new Dictionary<string, object>
 });
 ```
 
+To route requests through custom endpoints, set `ResolveUrl` and `EventUrl` to the base URLs. The SDK appends `v1/flags:resolve` and `v1/events:publish`.
+
+```csharp
+var options = new ConfidenceOptions
+{
+    ClientSecret = "your-client-secret",
+    ResolveUrl = "https://confidence-proxy.example.com/resolver",
+    EventUrl = "https://confidence-proxy.example.com/events"
+};
+```
+
 ## 🎯 Dot-Notation
 
 Confidence .NET SDK supports **dot-notation** for accessing nested properties in complex flags. This powerful feature allows you to directly extract specific values from structured flags without manual navigation.
@@ -215,4 +226,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this 
 
 ## License
 
-Apache 2.0 - See [LICENSE](LICENSE) for more information. 
+Apache 2.0 - See [LICENSE](LICENSE) for more information.

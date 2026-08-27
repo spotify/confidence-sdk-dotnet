@@ -34,4 +34,8 @@
     <ProjectReference Include="..\..\src\Spotify.Confidence.Sdk\Spotify.Confidence.Sdk.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\..\unity-sdk\Runtime\Providers\ConfidenceEndpointUrls.cs" Link="Unity\ConfidenceEndpointUrls.cs" />
+  </ItemGroup>
+
 </Project>

@@ -67,7 +67,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
             InnerHandler = handler
         })
         {
-            BaseAddress = new Uri(options.ResolveUrl),
+            BaseAddress = EndpointUrlHelper.CreateBaseAddress(options.ResolveUrl),
             Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
         };
 
@@ -76,7 +76,7 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
             InnerHandler = new HttpClientHandler()
         })
         {
-            BaseAddress = new Uri(options.EventUrl),
+            BaseAddress = EndpointUrlHelper.CreateBaseAddress(options.EventUrl),
             Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds)
         };
 

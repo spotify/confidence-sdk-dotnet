@@ -32,14 +32,14 @@ public class ConfidenceOptions
     }
 
     /// <summary>
-    /// Gets or sets the base URL for the Confidence API.
-    /// This is automatically set based on the Region property.
+    /// Gets or sets the base URL for the Confidence flag resolver.
+    /// The SDK appends v1/flags:resolve to this URL. This is automatically set based on the Region property.
     /// </summary>
     public string ResolveUrl { get; set; }
 
     /// <summary>
     /// Gets or sets the base URL for event tracking.
-    /// This is automatically set based on the Region property.
+    /// The SDK appends v1/events:publish to this URL. This is automatically set based on the Region property.
     /// </summary>
     public string EventUrl { get; set; }
 
