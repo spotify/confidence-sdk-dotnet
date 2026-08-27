@@ -418,6 +418,7 @@ namespace UnityOpenFeature.Providers
                 {
                     var (reason, errorCode) = Telemetry.Telemetry.MapEvaluationResult(details.Reason, details.ErrorCode);
                     apiClient.Telemetry.TrackEvaluation(reason, errorCode);
+                    apiClient.FlushTelemetryIfNeeded();
                 }
             }
             catch (Exception ex)

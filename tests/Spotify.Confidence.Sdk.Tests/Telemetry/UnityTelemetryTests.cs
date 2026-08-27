@@ -1,4 +1,3 @@
-using Google.Protobuf;
 using UnityOpenFeature.Core;
 using UnityOpenFeature.Telemetry;
 using Xunit;
@@ -8,37 +7,28 @@ namespace Spotify.Confidence.Sdk.Tests.Telemetry;
 public class UnityTelemetryTests
 {
     [Fact]
-    public void EncodedHeaderValue_UsesUnityPlatformAndCanonicalEvaluationValues()
+    public void TakeSnapshot_UsesCanonicalJsonValues()
     {
         var telemetry = new UnityOpenFeature.Telemetry.Telemetry(Platform.Unity, "1.2.3");
         telemetry.TrackEvaluation(EvaluationReason.Error, EvaluationErrorCode.TypeMismatch);
+        telemetry.TrackResolveLatency(123, RequestStatus.Success);
 
-        var header = telemetry.EncodedHeaderValue();
+        var snapshot = telemetry.TakeSnapshot();
 
-        Assert.NotNull(header);
-        var input = new CodedInputStream(Convert.FromBase64String(header));
-        Assert.Equal(WireFormat.MakeTag(1, WireFormat.WireType.LengthDelimited), input.ReadTag());
-        var libraryTraces = new CodedInputStream(input.ReadBytes().ToByteArray());
+        Assert.NotNull(snapshot);
+        var payload = snapshot.ToMonitoringPayload();
+        Assert.Equal("PLATFORM_UNITY", payload["platform"]);
+        var libraries = Assert.IsType<List<Dictionary<string, object>>>(payload["libraryTraces"]);
+        var library = Assert.Single(libraries);
+        Assert.Equal("LIBRARY_OPEN_FEATURE", library["library"]);
+        Assert.Equal("1.2.3", library["libraryVersion"]);
 
-        Assert.Equal(WireFormat.MakeTag(1, WireFormat.WireType.Varint), libraryTraces.ReadTag());
-        Assert.Equal((uint)Library.OpenFeature, libraryTraces.ReadUInt32());
-        Assert.Equal(WireFormat.MakeTag(2, WireFormat.WireType.LengthDelimited), libraryTraces.ReadTag());
-        Assert.Equal("1.2.3", libraryTraces.ReadString());
-        Assert.Equal(WireFormat.MakeTag(3, WireFormat.WireType.LengthDelimited), libraryTraces.ReadTag());
-
-        var trace = new CodedInputStream(libraryTraces.ReadBytes().ToByteArray());
-        Assert.Equal(WireFormat.MakeTag(1, WireFormat.WireType.Varint), trace.ReadTag());
-        Assert.Equal((uint)TraceId.FlagEvaluation, trace.ReadUInt32());
-        Assert.Equal(WireFormat.MakeTag(5, WireFormat.WireType.LengthDelimited), trace.ReadTag());
-
-        var evaluation = new CodedInputStream(trace.ReadBytes().ToByteArray());
-        Assert.Equal(WireFormat.MakeTag(1, WireFormat.WireType.Varint), evaluation.ReadTag());
-        Assert.Equal((uint)EvaluationReason.Error, evaluation.ReadUInt32());
-        Assert.Equal(WireFormat.MakeTag(2, WireFormat.WireType.Varint), evaluation.ReadTag());
-        Assert.Equal((uint)EvaluationErrorCode.TypeMismatch, evaluation.ReadUInt32());
-
-        Assert.Equal(WireFormat.MakeTag(2, WireFormat.WireType.Varint), input.ReadTag());
-        Assert.Equal((uint)Platform.Unity, input.ReadUInt32());
+        var traces = Assert.IsType<List<Dictionary<string, object>>>(library["traces"]);
+        var request = Assert.IsType<Dictionary<string, object>>(traces[0]["requestTrace"]);
+        Assert.Equal("STATUS_SUCCESS", request["status"]);
+        var evaluation = Assert.IsType<Dictionary<string, object>>(traces[1]["evaluationTrace"]);
+        Assert.Equal("EVALUATION_REASON_ERROR", evaluation["reason"]);
+        Assert.Equal("EVALUATION_ERROR_CODE_TYPE_MISMATCH", evaluation["errorCode"]);
     }
 
     [Theory]
@@ -61,7 +51,7 @@ public class UnityTelemetryTests
     }
 
     [Fact]
-    public void EncodedHeaderValue_CapsCombinedTraceCount()
+    public void TakeSnapshot_CapsCombinedTraceCount()
     {
         var telemetry = new UnityOpenFeature.Telemetry.Telemetry(Platform.Unity, "1.2.3");
         for (int i = 0; i < 75; i++)
@@ -70,34 +60,24 @@ public class UnityTelemetryTests
             telemetry.TrackResolveLatency(ulong.MaxValue, RequestStatus.Success);
         }
 
-        var header = telemetry.EncodedHeaderValue();
+        var snapshot = telemetry.TakeSnapshot();
 
-        Assert.NotNull(header);
-        Assert.Equal(100, CountTraces(header));
-        Assert.True(header.Length < 4096);
+        Assert.NotNull(snapshot);
+        Assert.Equal(100, snapshot.TraceCount);
     }
 
-    private static int CountTraces(string header)
+    [Fact]
+    public void Restore_RequeuesFailedSnapshotWithinLimit()
     {
-        var input = new CodedInputStream(Convert.FromBase64String(header));
-        Assert.Equal(WireFormat.MakeTag(1, WireFormat.WireType.LengthDelimited), input.ReadTag());
-        var libraryTraces = new CodedInputStream(input.ReadBytes().ToByteArray());
-        int traceCount = 0;
+        var telemetry = new UnityOpenFeature.Telemetry.Telemetry(Platform.Unity, "1.2.3");
+        telemetry.TrackEvaluation(EvaluationReason.TargetingMatch, EvaluationErrorCode.Unspecified);
+        var failedSnapshot = telemetry.TakeSnapshot();
+        Assert.NotNull(failedSnapshot);
 
-        while (!libraryTraces.IsAtEnd)
-        {
-            var tag = libraryTraces.ReadTag();
-            if (WireFormat.GetTagFieldNumber(tag) == 3)
-            {
-                traceCount++;
-                libraryTraces.ReadBytes();
-            }
-            else
-            {
-                libraryTraces.SkipLastField();
-            }
-        }
+        telemetry.Restore(failedSnapshot);
+        var retriedSnapshot = telemetry.TakeSnapshot();
 
-        return traceCount;
+        Assert.NotNull(retriedSnapshot);
+        Assert.Equal(1, retriedSnapshot.TraceCount);
     }
 }

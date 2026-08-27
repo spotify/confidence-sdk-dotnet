@@ -45,7 +45,16 @@ namespace UnityOpenFeature.Providers
         private float checkpointTimer = 0f;
         private const float CHECKPOINT_INTERVAL = 10f; // 10 seconds
 
-        private const string TelemetryHeaderName = "X-CONFIDENCE-TELEMETRY";
+        private const float TelemetryFlushIntervalSeconds = 30f;
+        private const float MaxTelemetryRetryDelaySeconds = 300f;
+        private static readonly System.Random TelemetryRandom = new System.Random();
+        private static readonly object TelemetryRandomLock = new object();
+        private float telemetryFlushInterval = TelemetryFlushIntervalSeconds;
+        private float telemetryFlushTimer;
+        private float telemetryRetryDelay;
+        private int consecutiveTelemetryFailures;
+        private bool telemetryFlushInProgress;
+        private Task telemetryFlushTask = Task.CompletedTask;
         internal Telemetry.Telemetry Telemetry { get; private set; }
 
         // Private constructor - use Create() method instead
@@ -67,6 +76,11 @@ namespace UnityOpenFeature.Providers
             if (!disableTelemetry)
             {
                 client.Telemetry = new Telemetry.Telemetry(Platform.Unity, SdkVersion);
+                lock (TelemetryRandomLock)
+                {
+                    client.telemetryFlushInterval = TelemetryFlushIntervalSeconds
+                        * (0.8f + (float)TelemetryRandom.NextDouble() * 0.4f);
+                }
             }
 
             return client;
@@ -82,12 +96,29 @@ namespace UnityOpenFeature.Providers
                 checkpointTimer = 0f;
                 Checkpoint();
             }
+
+            if (Telemetry != null)
+            {
+                telemetryFlushTimer += Time.deltaTime;
+                telemetryRetryDelay = Mathf.Max(0f, telemetryRetryDelay - Time.deltaTime);
+                if (telemetryFlushTimer >= telemetryFlushInterval && telemetryRetryDelay <= 0f)
+                {
+                    telemetryFlushTimer = 0f;
+                    _ = FlushTelemetryAsync();
+                }
+            }
         }
 
         public void Dispose()
         {
             SendAllBatchedFlags();
-            // Destroy the GameObject this component is attached to
+            _ = FlushTelemetryAndDestroyAsync();
+        }
+
+        private async Task FlushTelemetryAndDestroyAsync()
+        {
+            await FlushTelemetryAsync(true);
+            await FlushTelemetryAsync(true);
             if (gameObject != null)
             {
                 Object.Destroy(gameObject);
@@ -129,23 +160,6 @@ namespace UnityOpenFeature.Providers
                     // Set headers
                     request.SetRequestHeader("Content-Type", "application/json");
                     request.SetRequestHeader("Accept", "application/json");
-
-                    // Attach telemetry header
-                    try
-                    {
-                        if (Telemetry != null)
-                        {
-                            var headerValue = Telemetry.EncodedHeaderValue();
-                            if (headerValue != null)
-                            {
-                                request.SetRequestHeader(TelemetryHeaderName, headerValue);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.Log($"Telemetry header error (best-effort): {ex.Message}");
-                    }
 
                     request.downloadHandler = new DownloadHandlerBuffer();
 
@@ -198,12 +212,119 @@ namespace UnityOpenFeature.Providers
                 try
                 {
                     Telemetry?.TrackResolveLatency((ulong)stopwatch.ElapsedMilliseconds, resolveStatus);
+                    FlushTelemetryIfNeeded();
                 }
                 catch (Exception ex)
                 {
                     Debug.Log($"Telemetry latency tracking error (best-effort): {ex.Message}");
                 }
             }
+        }
+
+        internal void FlushTelemetryIfNeeded()
+        {
+            if (Telemetry?.IsFull == true && telemetryRetryDelay <= 0f)
+            {
+                _ = FlushTelemetryAsync();
+            }
+        }
+
+        private Task FlushTelemetryAsync(bool ignoreRetryDelay = false)
+        {
+            if (Telemetry == null || (!ignoreRetryDelay && telemetryRetryDelay > 0f))
+            {
+                return Task.CompletedTask;
+            }
+
+            if (telemetryFlushInProgress)
+            {
+                return telemetryFlushTask;
+            }
+
+            telemetryFlushInProgress = true;
+            telemetryFlushTask = UploadTelemetryAsync();
+            return telemetryFlushTask;
+        }
+
+        private async Task UploadTelemetryAsync()
+        {
+            TelemetrySnapshot snapshot = null;
+            try
+            {
+                snapshot = Telemetry.TakeSnapshot();
+                if (snapshot == null)
+                {
+                    return;
+                }
+
+                string url = ConfidenceEndpointUrls.Build(baseUrl, ConfidenceEndpointUrls.TelemetryPath);
+                var requestBody = new Dictionary<string, object>
+                {
+                    { "clientSecret", clientSecret },
+                    { "monitoring", snapshot.ToMonitoringPayload() },
+                };
+                string jsonBody = JsonConvert.SerializeObject(requestBody);
+
+                using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
+                {
+                    request.SetRequestHeader("Content-Type", "application/json");
+                    request.SetRequestHeader("Accept", "application/json");
+                    request.downloadHandler = new DownloadHandlerBuffer();
+                    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
+
+                    var operation = request.SendWebRequest();
+                    while (!operation.isDone)
+                    {
+                        await Task.Delay(100);
+                    }
+
+                    if (request.result != UnityWebRequest.Result.Success)
+                    {
+                        throw new InvalidOperationException(request.error);
+                    }
+                }
+
+                consecutiveTelemetryFailures = 0;
+                telemetryRetryDelay = 0f;
+            }
+            catch (Exception ex)
+            {
+                if (snapshot != null)
+                {
+                    Telemetry.Restore(snapshot);
+                }
+
+                consecutiveTelemetryFailures++;
+                telemetryRetryDelay = Mathf.Min(
+                    TelemetryFlushIntervalSeconds * Mathf.Pow(2, consecutiveTelemetryFailures - 1),
+                    MaxTelemetryRetryDelaySeconds);
+                Debug.Log($"Telemetry upload error (best-effort): {ex.Message}");
+            }
+            finally
+            {
+                telemetryFlushInProgress = false;
+            }
+        }
+
+        private void OnApplicationPause(bool isPaused)
+        {
+            if (isPaused)
+            {
+                _ = FlushTelemetryAsync(true);
+            }
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+            {
+                _ = FlushTelemetryAsync(true);
+            }
+        }
+
+        private void OnApplicationQuit()
+        {
+            _ = FlushTelemetryAsync(true);
         }
 
         public void ApplyFlag(string flagKey, string resolveToken)

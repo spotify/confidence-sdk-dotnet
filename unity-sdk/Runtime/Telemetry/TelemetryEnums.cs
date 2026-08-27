@@ -14,13 +14,6 @@ namespace UnityOpenFeature.Telemetry
         OpenFeature = 2,
     }
 
-    internal enum TraceId
-    {
-        Unspecified = 0,
-        ResolveLatency = 1,
-        FlagEvaluation = 3,
-    }
-
     internal enum RequestStatus
     {
         Unspecified = 0,
