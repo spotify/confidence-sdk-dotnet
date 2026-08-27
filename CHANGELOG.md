@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.3.1...v0.3.2) (2026-08-27)
+
+
+### 🐛 Bug Fixes
+
+* support custom resolver URLs ([#48](https://github.com/spotify/confidence-sdk-dotnet/issues/48)) ([b2533a1](https://github.com/spotify/confidence-sdk-dotnet/commit/b2533a1bbedcc332bc70b0dc83b9bdead0e9a736))
+
 ## [0.3.1](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.3.0...v0.3.1) (2026-08-14)
 
 
