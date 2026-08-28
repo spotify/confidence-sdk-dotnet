@@ -53,8 +53,7 @@ namespace UnityOpenFeature.Providers
         private float telemetryFlushTimer;
         private float telemetryRetryDelay;
         private int consecutiveTelemetryFailures;
-        private bool telemetryFlushInProgress;
-        private Task telemetryFlushTask = Task.CompletedTask;
+        private readonly SemaphoreSlim telemetryFlushSemaphore = new SemaphoreSlim(1, 1);
         internal Telemetry.Telemetry Telemetry { get; private set; }
 
         // Private constructor - use Create() method instead
@@ -117,7 +116,6 @@ namespace UnityOpenFeature.Providers
 
         private async Task FlushTelemetryAndDestroyAsync()
         {
-            await FlushTelemetryAsync(true);
             await FlushTelemetryAsync(true);
             if (gameObject != null)
             {
@@ -229,21 +227,42 @@ namespace UnityOpenFeature.Providers
             }
         }
 
-        private Task FlushTelemetryAsync(bool ignoreRetryDelay = false)
+        private async Task FlushTelemetryAsync(bool force = false)
         {
-            if (Telemetry == null || (!ignoreRetryDelay && telemetryRetryDelay > 0f))
+            if (Telemetry == null)
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            if (telemetryFlushInProgress)
+            bool acquired;
+            if (force)
             {
-                return telemetryFlushTask;
+                await telemetryFlushSemaphore.WaitAsync();
+                acquired = true;
+            }
+            else
+            {
+                acquired = await telemetryFlushSemaphore.WaitAsync(0);
             }
 
-            telemetryFlushInProgress = true;
-            telemetryFlushTask = UploadTelemetryAsync();
-            return telemetryFlushTask;
+            if (!acquired)
+            {
+                return;
+            }
+
+            try
+            {
+                if (!force && telemetryRetryDelay > 0f)
+                {
+                    return;
+                }
+
+                await UploadTelemetryAsync();
+            }
+            finally
+            {
+                telemetryFlushSemaphore.Release();
+            }
         }
 
         private async Task UploadTelemetryAsync()
@@ -299,10 +318,6 @@ namespace UnityOpenFeature.Providers
                     TelemetryFlushIntervalSeconds * Mathf.Pow(2, consecutiveTelemetryFailures - 1),
                     MaxTelemetryRetryDelaySeconds);
                 Debug.Log($"Telemetry upload error (best-effort): {ex.Message}");
-            }
-            finally
-            {
-                telemetryFlushInProgress = false;
             }
         }
 
