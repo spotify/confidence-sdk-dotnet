@@ -8,6 +8,8 @@ namespace UnityOpenFeature.Providers
         public const string ResolveFlagsPath = "v1/flags:resolve";
         public const string ApplyFlagsPath = "v1/flags:apply";
         public const string TelemetryPath = "v1/telemetry:upload";
+        public const string EventsBaseUrl = "https://events.confidence.dev";
+        public const string PublishEventsPath = "v1/events:publish";
 
         public static string NormalizeBaseUrl(string baseUrl)
         {

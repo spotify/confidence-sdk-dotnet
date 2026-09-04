@@ -68,6 +68,19 @@ namespace UnityOpenFeature.Client
             if (api.Provider == null) { Debug.LogWarning("No provider set"); return ResolutionDetails<T>.Error(flagKey, defaultValue, ErrorCode.ProviderNotReady, "No provider"); }
             return api.Provider.ResolveObjectValue<T>(flagKey, defaultValue);
         }
+
+        public void Track(string trackingEventName, TrackingEventDetails details = null)
+        {
+            if (api.Provider == null) return;
+            try
+            {
+                api.Provider.Track(trackingEventName, api.EvaluationContext, details);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.Log($"Track error (best-effort): {ex.Message}");
+            }
+        }
     }
 }
 

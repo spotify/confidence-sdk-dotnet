@@ -15,6 +15,8 @@ namespace UnityOpenFeature.Client
         ResolutionDetails<int> GetIntegerDetails(string flagKey, int defaultValue);
         ResolutionDetails<float> GetFloatDetails(string flagKey, float defaultValue);
         ResolutionDetails<T> GetObjectDetails<T>(string flagKey, T defaultValue);
+
+        void Track(string trackingEventName, TrackingEventDetails details = null);
     }
 }
 

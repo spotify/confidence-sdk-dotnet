@@ -13,6 +13,7 @@ namespace UnityOpenFeature.Core
         ResolutionDetails<T> ResolveObjectValue<T>(string flagKey, T defaultValue);
         void Initialize(Action<bool, string> callback = null);
         void OnContextSet(EvaluationContext oldContext, EvaluationContext newContext, Action<bool, string> callback = null);
+        void Track(string trackingEventName, EvaluationContext context, TrackingEventDetails details);
         void Shutdown();
 
         event Action OnReady;

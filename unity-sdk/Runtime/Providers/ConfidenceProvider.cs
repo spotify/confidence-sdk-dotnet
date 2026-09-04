@@ -429,6 +429,46 @@ namespace UnityOpenFeature.Providers
             return details;
         }
 
+        public void Track(string trackingEventName, EvaluationContext context, TrackingEventDetails details)
+        {
+            try
+            {
+                var payload = new Dictionary<string, object>();
+
+                if (details?.Data != null)
+                {
+                    foreach (var kvp in details.Data)
+                    {
+                        if (kvp.Key != "context")
+                            payload[kvp.Key] = kvp.Value;
+                    }
+                }
+
+                if (details?.Value != null)
+                {
+                    payload["value"] = details.Value.Value;
+                }
+
+                // Build context dict from EvaluationContext
+                var contextDict = new Dictionary<string, object>();
+                if (!string.IsNullOrEmpty(context?.TargetingKey))
+                    contextDict["targeting_key"] = context.TargetingKey;
+                if (context?.attributes != null)
+                {
+                    foreach (var attr in context.attributes)
+                        contextDict[attr.Key] = attr.Value;
+                }
+                if (contextDict.Count > 0)
+                    payload["context"] = contextDict;
+
+                apiClient.TrackEvent($"eventDefinitions/{trackingEventName}", payload);
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"Track error (best-effort): {ex.Message}");
+            }
+        }
+
         private Dictionary<string, object> GetEvaluationContext()
         {
             var context = OpenFeatureAPI.Instance.EvaluationContext;

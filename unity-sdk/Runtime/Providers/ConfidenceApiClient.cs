@@ -41,6 +41,11 @@ namespace UnityOpenFeature.Providers
         // Lock for thread-safe access to appliedFlags dictionary
         private readonly object appliedFlagsLock = new object();
 
+        // Event buffer for tracking events
+        private List<EventData> eventBuffer = new List<EventData>();
+        private readonly object eventBufferLock = new object();
+        private const int MAX_EVENT_BUFFER_SIZE = 100;
+
         // Timer for automatic checkpoints
         private float checkpointTimer = 0f;
         private const float CHECKPOINT_INTERVAL = 10f; // 10 seconds
@@ -325,6 +330,7 @@ namespace UnityOpenFeature.Providers
         {
             if (isPaused)
             {
+                _ = FlushEventsAsync();
                 _ = FlushTelemetryAsync(true);
             }
         }
@@ -333,12 +339,14 @@ namespace UnityOpenFeature.Providers
         {
             if (!hasFocus)
             {
+                _ = FlushEventsAsync();
                 _ = FlushTelemetryAsync(true);
             }
         }
 
         private void OnApplicationQuit()
         {
+            _ = FlushEventsAsync();
             _ = FlushTelemetryAsync(true);
         }
 
@@ -368,6 +376,9 @@ namespace UnityOpenFeature.Providers
 
         public async void Checkpoint()
         {
+            // Flush buffered events alongside flag applies
+            _ = FlushEventsAsync();
+
             Dictionary<string, AppliedFlag> flagsToProcess;
 
             // Atomically get and clear the flags to prevent race conditions
@@ -450,9 +461,98 @@ namespace UnityOpenFeature.Providers
                 }
             }
         }
+        public void TrackEvent(string eventDefinition, Dictionary<string, object> payload)
+        {
+            try
+            {
+                var eventData = new EventData
+                {
+                    eventDefinition = eventDefinition,
+                    eventTime = DateTime.UtcNow,
+                    payload = payload ?? new Dictionary<string, object>()
+                };
+
+                lock (eventBufferLock)
+                {
+                    if (eventBuffer.Count >= MAX_EVENT_BUFFER_SIZE)
+                    {
+                        Debug.Log("Event buffer full, dropping oldest event");
+                        eventBuffer.RemoveAt(0);
+                    }
+                    eventBuffer.Add(eventData);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"TrackEvent error (best-effort): {ex.Message}");
+            }
+        }
+
+        private async Task FlushEventsAsync()
+        {
+            List<EventData> eventsToSend;
+
+            lock (eventBufferLock)
+            {
+                if (eventBuffer.Count == 0)
+                {
+                    return;
+                }
+
+                eventsToSend = new List<EventData>(eventBuffer);
+                eventBuffer.Clear();
+            }
+
+            try
+            {
+                string url = ConfidenceEndpointUrls.Build(
+                    ConfidenceEndpointUrls.EventsBaseUrl,
+                    ConfidenceEndpointUrls.PublishEventsPath);
+
+                var requestBody = new PublishEventsRequest
+                {
+                    clientSecret = this.clientSecret,
+                    sendTime = DateTime.UtcNow,
+                    sdk = new SdkInfo
+                    {
+                        id = sdkId,
+                        version = SdkVersion
+                    },
+                    events = eventsToSend
+                };
+
+                string jsonBody = JsonConvert.SerializeObject(requestBody);
+
+                using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
+                {
+                    request.SetRequestHeader("Content-Type", "application/json");
+                    request.SetRequestHeader("Accept", "application/json");
+                    request.downloadHandler = new DownloadHandlerBuffer();
+                    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
+
+                    var operation = request.SendWebRequest();
+
+                    while (!operation.isDone)
+                    {
+                        await Task.Delay(100);
+                    }
+
+                    if (request.result != UnityWebRequest.Result.Success)
+                    {
+                        Debug.Log($"Event publish failed (best-effort): {request.error}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"Event publish error (best-effort): {ex.Message}");
+            }
+        }
+
         private void SendAllBatchedFlags()
         {
             Checkpoint();
+            _ = FlushEventsAsync();
         }
 
 
@@ -507,6 +607,29 @@ namespace UnityOpenFeature.Providers
             public Dictionary<string, object> value;
             public string reason;
             public bool shouldApply;
+        }
+
+        [Serializable, Preserve]
+        internal class EventData
+        {
+            [JsonProperty("event_definition")]
+            public string eventDefinition;
+            [JsonProperty("event_time")]
+            [JsonConverter(typeof(CustomDateTimeConverter))]
+            public DateTime eventTime;
+            public Dictionary<string, object> payload;
+        }
+
+        [Serializable, Preserve]
+        private class PublishEventsRequest
+        {
+            [JsonProperty("client_secret")]
+            public string clientSecret;
+            [JsonProperty("send_time")]
+            [JsonConverter(typeof(CustomDateTimeConverter))]
+            public DateTime sendTime;
+            public SdkInfo sdk;
+            public List<EventData> events;
         }
     }
 }

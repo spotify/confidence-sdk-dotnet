@@ -40,6 +40,11 @@ namespace UnityOpenFeature.Providers
             callback?.Invoke(true, "InMemoryProvider context updated");
         }
 
+        public void Track(string trackingEventName, EvaluationContext context, TrackingEventDetails details)
+        {
+            // No-op: InMemoryProvider does not support event tracking
+        }
+
         public void Shutdown()
         {
             IsReady = false;
