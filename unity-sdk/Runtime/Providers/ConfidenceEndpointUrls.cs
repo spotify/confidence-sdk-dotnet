@@ -7,6 +7,7 @@ namespace UnityOpenFeature.Providers
         public const string DefaultBaseUrl = "https://resolver.confidence.dev";
         public const string ResolveFlagsPath = "v1/flags:resolve";
         public const string ApplyFlagsPath = "v1/flags:apply";
+        public const string TelemetryPath = "v1/telemetry:upload";
 
         public static string NormalizeBaseUrl(string baseUrl)
         {

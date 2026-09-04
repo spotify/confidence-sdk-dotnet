@@ -7,6 +7,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using Newtonsoft.Json;
 using UnityOpenFeature.Core;
+using UnityOpenFeature.Telemetry;
 
 namespace UnityOpenFeature.Providers
 {
@@ -25,11 +26,14 @@ namespace UnityOpenFeature.Providers
         private Dictionary<string, ConfidenceApiClient.ResolvedFlag> flagDictionary = new Dictionary<string, ConfidenceApiClient.ResolvedFlag>();
         private string resolveToken;
 
-        public ConfidenceProvider(string clientSecret, string baseUrl = ConfidenceApiClient.DefaultBaseUrl)
+        public ConfidenceProvider(
+            string clientSecret,
+            string baseUrl = ConfidenceApiClient.DefaultBaseUrl,
+            bool disableTelemetry = false)
         {
             this.clientSecret = clientSecret;
             this.baseUrl = ConfidenceEndpointUrls.NormalizeBaseUrl(baseUrl);
-            this.apiClient = ConfidenceApiClient.Create(clientSecret, this.baseUrl);
+            this.apiClient = ConfidenceApiClient.Create(clientSecret, this.baseUrl, disableTelemetry);
             InitializeDictionary();
         }
 
@@ -160,34 +164,34 @@ namespace UnityOpenFeature.Providers
 
         public ResolutionDetails<bool> ResolveBooleanValue(string flagKey, bool defaultValue)
         {
-            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue);
+            var objectResult = ResolveObjectValueCore<object>(flagKey, defaultValue);
             
             if (objectResult.ErrorCode != ErrorCode.None)
             {
-                return ResolutionDetails<bool>.Error(flagKey, defaultValue, objectResult.ErrorCode, objectResult.ErrorMessage);
+                return TrackEvaluation(ResolutionDetails<bool>.Error(flagKey, defaultValue, objectResult.ErrorCode, objectResult.ErrorMessage));
             }
 
             // Try to cast the object value to bool
             if (objectResult.Value is bool boolValue)
             {
-                return new ResolutionDetails<bool>(boolValue, flagKey)
+                return TrackEvaluation(new ResolutionDetails<bool>(boolValue, flagKey)
                 {
                     Reason = objectResult.Reason,
                     Variant = objectResult.Variant
-                };
+                });
             }
             
             // Try to parse string representation to bool
             if (bool.TryParse(objectResult.Value?.ToString(), out var parsedBool))
             {
-                return new ResolutionDetails<bool>(parsedBool, flagKey)
+                return TrackEvaluation(new ResolutionDetails<bool>(parsedBool, flagKey)
                 {
                     Reason = objectResult.Reason,
                     Variant = objectResult.Variant
-                };
+                });
             }
 
-            return ResolutionDetails<bool>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{objectResult.Value}' to boolean");
+            return TrackEvaluation(ResolutionDetails<bool>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{objectResult.Value}' to boolean"));
         }
 
         private void tryApply(ConfidenceApiClient.ResolvedFlag resolvedFlag, string rootFlagKey) {
@@ -201,102 +205,109 @@ namespace UnityOpenFeature.Providers
 
         public ResolutionDetails<string> ResolveStringValue(string flagKey, string defaultValue)
         {
-            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue);
+            var objectResult = ResolveObjectValueCore<object>(flagKey, defaultValue);
             
             if (objectResult.ErrorCode != ErrorCode.None)
             {
-                return ResolutionDetails<string>.Error(flagKey, defaultValue, objectResult.ErrorCode, objectResult.ErrorMessage);
+                return TrackEvaluation(ResolutionDetails<string>.Error(flagKey, defaultValue, objectResult.ErrorCode, objectResult.ErrorMessage));
             }
 
             // Convert the object value to string
             var stringValue = objectResult.Value?.ToString() ?? defaultValue;
             
-            return new ResolutionDetails<string>(stringValue, flagKey)
+            return TrackEvaluation(new ResolutionDetails<string>(stringValue, flagKey)
             {
                 Reason = objectResult.Reason,
                 Variant = objectResult.Variant
-            };
+            });
         }
 
         public ResolutionDetails<int> ResolveIntegerValue(string flagKey, int defaultValue)
         {
-            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue);
+            var objectResult = ResolveObjectValueCore<object>(flagKey, defaultValue);
             
             if (objectResult.ErrorCode != ErrorCode.None)
             {
-                return ResolutionDetails<int>.Error(flagKey, defaultValue, objectResult.ErrorCode, objectResult.ErrorMessage);
+                return TrackEvaluation(ResolutionDetails<int>.Error(flagKey, defaultValue, objectResult.ErrorCode, objectResult.ErrorMessage));
             }
 
             // Try to cast the object value to int
             if (objectResult.Value is int intValue)
             {
-                return new ResolutionDetails<int>(intValue, flagKey)
+                return TrackEvaluation(new ResolutionDetails<int>(intValue, flagKey)
                 {
                     Reason = objectResult.Reason,
                     Variant = objectResult.Variant
-                };
+                });
             }
             
             // Try to parse string representation to int
             if (int.TryParse(objectResult.Value?.ToString(), out var parsedInt))
             {
-                return new ResolutionDetails<int>(parsedInt, flagKey)
+                return TrackEvaluation(new ResolutionDetails<int>(parsedInt, flagKey)
                 {
                     Reason = objectResult.Reason,
                     Variant = objectResult.Variant
-                };
+                });
             }
 
-            return ResolutionDetails<int>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{objectResult.Value}' to integer");
+            return TrackEvaluation(ResolutionDetails<int>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{objectResult.Value}' to integer"));
         }
 
         public ResolutionDetails<float> ResolveFloatValue(string flagKey, float defaultValue)
         {
-            var objectResult = ResolveObjectValue<object>(flagKey, defaultValue);
+            var objectResult = ResolveObjectValueCore<object>(flagKey, defaultValue);
             
             if (objectResult.ErrorCode != ErrorCode.None)
             {
-                return ResolutionDetails<float>.Error(flagKey, defaultValue, objectResult.ErrorCode, objectResult.ErrorMessage);
+                return TrackEvaluation(ResolutionDetails<float>.Error(flagKey, defaultValue, objectResult.ErrorCode, objectResult.ErrorMessage));
             }
 
             // Try to cast the object value to float
             if (objectResult.Value is float floatValue)
             {
-                return new ResolutionDetails<float>(floatValue, flagKey)
+                return TrackEvaluation(new ResolutionDetails<float>(floatValue, flagKey)
                 {
                     Reason = objectResult.Reason,
                     Variant = objectResult.Variant
-                };
+                });
             }
             
             // Try to cast from double (common JSON numeric type)
             if (objectResult.Value is double doubleValue)
             {
-                return new ResolutionDetails<float>((float)doubleValue, flagKey)
+                return TrackEvaluation(new ResolutionDetails<float>((float)doubleValue, flagKey)
                 {
                     Reason = objectResult.Reason,
                     Variant = objectResult.Variant
-                };
+                });
             }
             
             // Try to parse string representation to float
             if (float.TryParse(objectResult.Value?.ToString(), out var parsedFloat))
             {
-                return new ResolutionDetails<float>(parsedFloat, flagKey)
+                return TrackEvaluation(new ResolutionDetails<float>(parsedFloat, flagKey)
                 {
                     Reason = objectResult.Reason,
                     Variant = objectResult.Variant
-                };
+                });
             }
 
-            return ResolutionDetails<float>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{objectResult.Value}' to float");
+            return TrackEvaluation(ResolutionDetails<float>.Error(flagKey, defaultValue, ErrorCode.TypeMismatch, $"Cannot convert '{objectResult.Value}' to float"));
         }
 
         public ResolutionDetails<T> ResolveObjectValue<T>(string flagKey, T defaultValue)
         {
+            return TrackEvaluation(ResolveObjectValueCore(flagKey, defaultValue));
+        }
+
+        private ResolutionDetails<T> ResolveObjectValueCore<T>(string flagKey, T defaultValue)
+        {
             var value = ResolveValueByDotNotation(flagKey);
             if (value == null)
+            {
                 return ResolutionDetails<T>.Error(flagKey, defaultValue, ErrorCode.FlagNotFound, $"Flag '{flagKey}' not found");
+            }
 
             var rootFlagKey = flagKey.Split('.')[0];
             var resolvedFlag = GetResolvedFlag(rootFlagKey);
@@ -316,7 +327,7 @@ namespace UnityOpenFeature.Providers
             }
             catch (Exception ex)
             {
-                details = ResolutionDetails<T>.Error(flagKey, defaultValue, ErrorCode.ParseError, $"Cannot parse: {ex.Message}");
+                return ResolutionDetails<T>.Error(flagKey, defaultValue, ErrorCode.ParseError, $"Cannot parse: {ex.Message}");
             }
 
             if (resolvedFlag != null)
@@ -397,6 +408,25 @@ namespace UnityOpenFeature.Providers
                 "ERROR" => UnityOpenFeature.Core.Reason.ERROR,
                 _ => UnityOpenFeature.Core.Reason.RESOLVE_REASON_UNSPECIFIED
             };
+        }
+
+        private ResolutionDetails<T> TrackEvaluation<T>(ResolutionDetails<T> details)
+        {
+            try
+            {
+                if (apiClient?.Telemetry != null)
+                {
+                    var (reason, errorCode) = Telemetry.Telemetry.MapEvaluationResult(details.Reason, details.ErrorCode);
+                    apiClient.Telemetry.TrackEvaluation(reason, errorCode);
+                    apiClient.FlushTelemetryIfNeeded();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"Telemetry eval tracking error (best-effort): {ex.Message}");
+            }
+
+            return details;
         }
 
         private Dictionary<string, object> GetEvaluationContext()

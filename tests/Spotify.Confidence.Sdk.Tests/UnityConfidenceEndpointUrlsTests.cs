@@ -26,4 +26,14 @@ public class UnityConfidenceEndpointUrlsTests
 
         Assert.Equal(expected, url);
     }
+
+    [Theory]
+    [InlineData("https://resolver.test", "https://resolver.test/v1/telemetry:upload")]
+    [InlineData("https://resolver.test/custom/", "https://resolver.test/custom/v1/telemetry:upload")]
+    public void Build_ReturnsCustomTelemetryUrl(string baseUrl, string expected)
+    {
+        var url = ConfidenceEndpointUrls.Build(baseUrl, ConfidenceEndpointUrls.TelemetryPath);
+
+        Assert.Equal(expected, url);
+    }
 }

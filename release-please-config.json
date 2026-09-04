@@ -11,6 +11,7 @@
         "src/Spotify.Confidence.Sdk/Spotify.Confidence.Sdk.csproj",
         "src/Spotify.Confidence.OpenFeature/Spotify.Confidence.OpenFeature.csproj",
         "tests/Spotify.Confidence.Sdk.Tests/ConfidenceClientTests.cs",
+        "unity-sdk/Runtime/Providers/ConfidenceApiClient.cs",
         {
           "type": "json",
           "path": "unity-sdk/package.json",
