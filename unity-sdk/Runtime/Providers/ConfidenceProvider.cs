@@ -429,6 +429,33 @@ namespace UnityOpenFeature.Providers
             return details;
         }
 
+        public void Track(string trackingEventName, EvaluationContext context, TrackingEventDetails details)
+        {
+            try
+            {
+                // The mapping lives in TrackingPayloadBuilder, which takes plain
+                // primitives instead of an EvaluationContext so it has no
+                // UnityEngine dependency and can be tested directly.
+                List<KeyValuePair<string, string>> attributes = null;
+                if (context?.attributes != null)
+                {
+                    attributes = new List<KeyValuePair<string, string>>(context.attributes.Count);
+                    foreach (var attr in context.attributes)
+                    {
+                        attributes.Add(new KeyValuePair<string, string>(attr.Key, attr.Value));
+                    }
+                }
+
+                var payload = TrackingPayloadBuilder.Build(details, context?.TargetingKey, attributes);
+
+                apiClient.TrackEvent($"eventDefinitions/{trackingEventName}", payload);
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"Track error (best-effort): {ex.Message}");
+            }
+        }
+
         private Dictionary<string, object> GetEvaluationContext()
         {
             var context = OpenFeatureAPI.Instance.EvaluationContext;

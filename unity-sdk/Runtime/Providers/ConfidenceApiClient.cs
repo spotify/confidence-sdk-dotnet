@@ -41,6 +41,19 @@ namespace UnityOpenFeature.Providers
         // Lock for thread-safe access to appliedFlags dictionary
         private readonly object appliedFlagsLock = new object();
 
+        // Event buffer for tracking events
+        private List<EventData> eventBuffer = new List<EventData>();
+        private readonly object eventBufferLock = new object();
+        private const int MAX_EVENT_BUFFER_SIZE = 100;
+
+        // Kick a flush once the buffer is this full, so it normally drains
+        // before reaching capacity rather than having to drop anything.
+        private const int EVENT_BUFFER_FLUSH_THRESHOLD = (MAX_EVENT_BUFFER_SIZE * 4) / 5;
+
+        // Events discarded because the buffer was full. Exposed via
+        // DroppedEventCount so the loss is observable instead of log-only.
+        private int droppedEventCount;
+
         // Timer for automatic checkpoints
         private float checkpointTimer = 0f;
         private const float CHECKPOINT_INTERVAL = 10f; // 10 seconds
@@ -321,10 +334,17 @@ namespace UnityOpenFeature.Providers
             }
         }
 
+        // Applied flags accumulate in appliedFlags and are only sent by
+        // Checkpoint(), which otherwise runs on a CHECKPOINT_INTERVAL timer in
+        // Update(). Backgrounding or quitting therefore lost up to an interval's
+        // worth of applies, so these checkpoints flush them too. Checkpoint()
+        // also flushes buffered events, so it replaces the FlushEventsAsync call
+        // rather than being added alongside it.
         private void OnApplicationPause(bool isPaused)
         {
             if (isPaused)
             {
+                Checkpoint();
                 _ = FlushTelemetryAsync(true);
             }
         }
@@ -333,12 +353,14 @@ namespace UnityOpenFeature.Providers
         {
             if (!hasFocus)
             {
+                Checkpoint();
                 _ = FlushTelemetryAsync(true);
             }
         }
 
         private void OnApplicationQuit()
         {
+            Checkpoint();
             _ = FlushTelemetryAsync(true);
         }
 
@@ -368,6 +390,9 @@ namespace UnityOpenFeature.Providers
 
         public async void Checkpoint()
         {
+            // Flush buffered events alongside flag applies
+            _ = FlushEventsAsync();
+
             Dictionary<string, AppliedFlag> flagsToProcess;
 
             // Atomically get and clear the flags to prevent race conditions
@@ -450,9 +475,144 @@ namespace UnityOpenFeature.Providers
                 }
             }
         }
+        public void TrackEvent(string eventDefinition, Dictionary<string, object> payload)
+        {
+            try
+            {
+                var eventData = new EventData
+                {
+                    eventDefinition = eventDefinition,
+                    eventTime = DateTime.UtcNow,
+                    payload = payload ?? new Dictionary<string, object>()
+                };
+
+                bool dropped;
+                bool shouldFlush;
+                int droppedTotal;
+
+                lock (eventBufferLock)
+                {
+                    dropped = eventBuffer.Count >= MAX_EVENT_BUFFER_SIZE;
+                    if (dropped)
+                    {
+                        // Drop the incoming event rather than shifting the list to
+                        // evict the oldest: RemoveAt(0) is O(n) under this lock on
+                        // the caller's thread, and the buffered events have already
+                        // waited, so they are the ones closest to being delivered.
+                        droppedEventCount++;
+                    }
+                    else
+                    {
+                        eventBuffer.Add(eventData);
+                    }
+
+                    droppedTotal = droppedEventCount;
+                    shouldFlush = eventBuffer.Count >= EVENT_BUFFER_FLUSH_THRESHOLD;
+                }
+
+                if (dropped)
+                {
+                    // Rate limited: a full buffer means every subsequent call drops,
+                    // and one warning per event would bury the rest of the log.
+                    if (droppedTotal == 1 || droppedTotal % MAX_EVENT_BUFFER_SIZE == 0)
+                    {
+                        Debug.LogWarning(
+                            $"Event buffer full ({MAX_EVENT_BUFFER_SIZE}); dropped {droppedTotal} event(s) so far. " +
+                            "See ConfidenceApiClient.DroppedEventCount.");
+                    }
+                }
+
+                if (shouldFlush)
+                {
+                    _ = FlushEventsAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"TrackEvent error (best-effort): {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Number of tracking events discarded because the buffer was full.
+        /// Non-zero means events were lost and never published.
+        /// </summary>
+        public int DroppedEventCount
+        {
+            get
+            {
+                lock (eventBufferLock)
+                {
+                    return droppedEventCount;
+                }
+            }
+        }
+
+        private async Task FlushEventsAsync()
+        {
+            List<EventData> eventsToSend;
+
+            lock (eventBufferLock)
+            {
+                if (eventBuffer.Count == 0)
+                {
+                    return;
+                }
+
+                eventsToSend = new List<EventData>(eventBuffer);
+                eventBuffer.Clear();
+            }
+
+            try
+            {
+                string url = ConfidenceEndpointUrls.Build(
+                    ConfidenceEndpointUrls.EventsBaseUrl,
+                    ConfidenceEndpointUrls.PublishEventsPath);
+
+                var requestBody = new PublishEventsRequest
+                {
+                    clientSecret = this.clientSecret,
+                    sendTime = DateTime.UtcNow,
+                    sdk = new SdkInfo
+                    {
+                        id = sdkId,
+                        version = SdkVersion
+                    },
+                    events = eventsToSend
+                };
+
+                string jsonBody = JsonConvert.SerializeObject(requestBody);
+
+                using (UnityWebRequest request = new UnityWebRequest(url, "POST"))
+                {
+                    request.SetRequestHeader("Content-Type", "application/json");
+                    request.SetRequestHeader("Accept", "application/json");
+                    request.downloadHandler = new DownloadHandlerBuffer();
+                    request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
+
+                    var operation = request.SendWebRequest();
+
+                    while (!operation.isDone)
+                    {
+                        await Task.Delay(100);
+                    }
+
+                    if (request.result != UnityWebRequest.Result.Success)
+                    {
+                        Debug.Log($"Event publish failed (best-effort): {request.error}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.Log($"Event publish error (best-effort): {ex.Message}");
+            }
+        }
+
         private void SendAllBatchedFlags()
         {
             Checkpoint();
+            _ = FlushEventsAsync();
         }
 
 
@@ -507,6 +667,29 @@ namespace UnityOpenFeature.Providers
             public Dictionary<string, object> value;
             public string reason;
             public bool shouldApply;
+        }
+
+        [Serializable, Preserve]
+        internal class EventData
+        {
+            [JsonProperty("event_definition")]
+            public string eventDefinition;
+            [JsonProperty("event_time")]
+            [JsonConverter(typeof(CustomDateTimeConverter))]
+            public DateTime eventTime;
+            public Dictionary<string, object> payload;
+        }
+
+        [Serializable, Preserve]
+        private class PublishEventsRequest
+        {
+            [JsonProperty("client_secret")]
+            public string clientSecret;
+            [JsonProperty("send_time")]
+            [JsonConverter(typeof(CustomDateTimeConverter))]
+            public DateTime sendTime;
+            public SdkInfo sdk;
+            public List<EventData> events;
         }
     }
 }
