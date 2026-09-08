@@ -433,33 +433,20 @@ namespace UnityOpenFeature.Providers
         {
             try
             {
-                var payload = new Dictionary<string, object>();
-
-                if (details?.Data != null)
+                // The mapping lives in TrackingPayloadBuilder, which takes plain
+                // primitives instead of an EvaluationContext so it has no
+                // UnityEngine dependency and can be tested directly.
+                List<KeyValuePair<string, string>> attributes = null;
+                if (context?.attributes != null)
                 {
-                    foreach (var kvp in details.Data)
+                    attributes = new List<KeyValuePair<string, string>>(context.attributes.Count);
+                    foreach (var attr in context.attributes)
                     {
-                        if (kvp.Key != "context")
-                            payload[kvp.Key] = kvp.Value;
+                        attributes.Add(new KeyValuePair<string, string>(attr.Key, attr.Value));
                     }
                 }
 
-                if (details?.Value != null)
-                {
-                    payload["value"] = details.Value.Value;
-                }
-
-                // Build context dict from EvaluationContext
-                var contextDict = new Dictionary<string, object>();
-                if (!string.IsNullOrEmpty(context?.TargetingKey))
-                    contextDict["targeting_key"] = context.TargetingKey;
-                if (context?.attributes != null)
-                {
-                    foreach (var attr in context.attributes)
-                        contextDict[attr.Key] = attr.Value;
-                }
-                if (contextDict.Count > 0)
-                    payload["context"] = contextDict;
+                var payload = TrackingPayloadBuilder.Build(details, context?.TargetingKey, attributes);
 
                 apiClient.TrackEvent($"eventDefinitions/{trackingEventName}", payload);
             }

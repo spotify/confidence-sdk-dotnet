@@ -7,99 +7,154 @@ namespace Spotify.Confidence.Sdk.Tests;
 public class EventTrackingTests
 {
     [Fact]
-    public void TrackingEventDetails_DefaultValue_IsNull()
+    public void TrackingEventDetails_Empty_HasNoValueAndNoAttributes()
     {
-        var details = new TrackingEventDetails();
+        var details = TrackingEventDetails.Empty;
+
         Assert.Null(details.Value);
+        Assert.Equal(0, details.Count);
+        Assert.Empty(details.AsDictionary());
     }
 
     [Fact]
-    public void TrackingEventDetails_Value_CanBeSet()
+    public void TrackingEventDetails_Builder_SetsValue()
     {
-        var details = new TrackingEventDetails { Value = 42.0 };
+        var details = TrackingEventDetails.Builder().SetValue(42.0).Build();
+
         Assert.Equal(42.0, details.Value);
     }
 
     [Fact]
-    public void TrackingEventDetails_Data_IsEmptyByDefault()
+    public void TrackingEventDetails_Builder_StoresTypedAttributes()
     {
-        var details = new TrackingEventDetails();
-        Assert.NotNull(details.Data);
-        Assert.Empty(details.Data);
+        var timestamp = new DateTime(2026, 9, 8, 10, 30, 0, DateTimeKind.Utc);
+
+        var details = TrackingEventDetails.Builder()
+            .Set("str", "hello")
+            .Set("num", 123)
+            .Set("big", 9_000_000_000L)
+            .Set("dbl", 1.5)
+            .Set("flag", true)
+            .Set("when", timestamp)
+            .Build();
+
+        Assert.Equal(6, details.Count);
+        Assert.Equal("hello", details.GetValue("str"));
+        Assert.Equal(123, details.GetValue("num"));
+        Assert.Equal(9_000_000_000L, details.GetValue("big"));
+        Assert.Equal(1.5, details.GetValue("dbl"));
+        Assert.Equal(true, details.GetValue("flag"));
+        Assert.Equal(timestamp, details.GetValue("when"));
     }
 
     [Fact]
-    public void TrackingEventDetails_Data_CanStoreStringValues()
+    public void TrackingEventDetails_Accessors_BehaveLikeTheOfficialSdk()
     {
-        var details = new TrackingEventDetails();
-        details.Data["key1"] = "value1";
-        details.Data["key2"] = "value2";
+        var details = TrackingEventDetails.Builder().Set("present", "yes").Build();
 
-        Assert.Equal(2, details.Data.Count);
-        Assert.Equal("value1", details.Data["key1"]);
-        Assert.Equal("value2", details.Data["key2"]);
+        Assert.True(details.ContainsKey("present"));
+        Assert.False(details.ContainsKey("absent"));
+
+        Assert.True(details.TryGetValue("present", out var found));
+        Assert.Equal("yes", found);
+
+        Assert.False(details.TryGetValue("absent", out var missing));
+        Assert.Null(missing);
+
+        Assert.Throws<KeyNotFoundException>(() => details.GetValue("absent"));
     }
 
     [Fact]
-    public void TrackingEventDetails_Data_CanStoreMixedTypes()
+    public void TrackingEventDetails_IsImmutable_AfterBuild()
     {
-        var details = new TrackingEventDetails();
-        details.Data["str"] = "hello";
-        details.Data["num"] = 123;
-        details.Data["flag"] = true;
+        var builder = TrackingEventDetails.Builder().Set("first", 1);
+        var details = builder.Build();
 
-        Assert.Equal("hello", details.Data["str"]);
-        Assert.Equal(123, details.Data["num"]);
-        Assert.Equal(true, details.Data["flag"]);
+        // Reusing the builder must not mutate what it already produced.
+        builder.Set("second", 2).SetValue(9.0);
+
+        Assert.Equal(1, details.Count);
+        Assert.False(details.ContainsKey("second"));
+        Assert.Null(details.Value);
     }
 
     [Fact]
-    public void TrackingEventDetails_ValueAndData_CanCoexist()
+    public void TrackingEventDetails_Merge_OverwritesCollidingKeys()
     {
-        var details = new TrackingEventDetails
-        {
-            Value = 99.5
-        };
-        details.Data["action"] = "purchase";
+        var original = TrackingEventDetails.Builder()
+            .Set("keep", "a")
+            .Set("clash", "old")
+            .SetValue(1.0)
+            .Build();
+
+        var merged = TrackingEventDetails.Builder()
+            .Set("clash", "new")
+            .Merge(original)
+            .Build();
+
+        Assert.Equal("a", merged.GetValue("keep"));
+        Assert.Equal("old", merged.GetValue("clash"));
+        Assert.Equal(1.0, merged.Value);
+    }
+
+    [Fact]
+    public void TrackingEventDetails_ValueAndAttributes_CanCoexist()
+    {
+        var details = TrackingEventDetails.Builder()
+            .SetValue(99.5)
+            .Set("action", "purchase")
+            .Build();
 
         Assert.Equal(99.5, details.Value);
-        Assert.Single(details.Data);
-        Assert.Equal("purchase", details.Data["action"]);
+        Assert.Equal(1, details.Count);
+        Assert.Equal("purchase", details.GetValue("action"));
     }
 
     [Fact]
     public void PayloadConstruction_WithValueAndData_ProducesCorrectPayload()
     {
-        var details = new TrackingEventDetails
-        {
-            Value = 42.0
-        };
-        details.Data["custom_field"] = "hello";
-        details.Data["context"] = "should_be_skipped";
+        var details = TrackingEventDetails.Builder()
+            .SetValue(42.0)
+            .Set("custom_field", "hello")
+            .Set("context", "should_be_dropped")
+            .Build();
 
-        // Simulate the payload construction from ConfidenceProvider.Track
-        var payload = BuildPayload(details, "user-123", new Dictionary<string, string>
+        var payload = TrackingPayloadBuilder.Build(details, "user-123", new Dictionary<string, string>
         {
             { "country", "SE" }
         });
 
         Assert.Equal(42.0, payload["value"]);
         Assert.Equal("hello", payload["custom_field"]);
-        // "context" key from details.Data should be excluded
-        Assert.False(payload.ContainsKey("should_be_skipped"));
 
-        var payloadContext = (Dictionary<string, object>)payload["context"];
+        // The reserved "context" key from the details must not overwrite the
+        // context the provider derives from the evaluation context.
+        var payloadContext = Assert.IsType<Dictionary<string, object>>(payload["context"]);
         Assert.Equal("user-123", payloadContext["targeting_key"]);
         Assert.Equal("SE", payloadContext["country"]);
     }
 
     [Fact]
+    public void PayloadConstruction_DropsReservedContextKeyFromDetails()
+    {
+        var details = TrackingEventDetails.Builder().Set("context", "should_be_dropped").Build();
+
+        // No targeting key and no attributes, so nothing else writes "context".
+        // The assertion in PayloadConstruction_WithValueAndData cannot catch a
+        // failure to strip this key, because the derived context overwrites it;
+        // here there is nothing to overwrite, so the key must be absent.
+        var payload = TrackingPayloadBuilder.Build(details, null, null);
+
+        Assert.False(payload.ContainsKey("context"));
+        Assert.Empty(payload);
+    }
+
+    [Fact]
     public void PayloadConstruction_WithoutValue_OmitsValueField()
     {
-        var details = new TrackingEventDetails();
-        details.Data["action"] = "click";
+        var details = TrackingEventDetails.Builder().Set("action", "click").Build();
 
-        var payload = BuildPayload(details, null, null);
+        var payload = TrackingPayloadBuilder.Build(details, null, null);
 
         Assert.False(payload.ContainsKey("value"));
         Assert.Equal("click", payload["action"]);
@@ -108,18 +163,26 @@ public class EventTrackingTests
     [Fact]
     public void PayloadConstruction_WithNullDetails_ProducesContextOnlyPayload()
     {
-        var payload = BuildPayload(null, "user-456", null);
+        var payload = TrackingPayloadBuilder.Build(null, "user-456", null);
 
         Assert.False(payload.ContainsKey("value"));
         Assert.Single(payload); // only context
-        var payloadContext = (Dictionary<string, object>)payload["context"];
+        var payloadContext = Assert.IsType<Dictionary<string, object>>(payload["context"]);
         Assert.Equal("user-456", payloadContext["targeting_key"]);
     }
 
     [Fact]
     public void PayloadConstruction_WithNoContextOrDetails_ProducesEmptyPayload()
     {
-        var payload = BuildPayload(null, null, null);
+        var payload = TrackingPayloadBuilder.Build(null, null, null);
+
+        Assert.Empty(payload);
+    }
+
+    [Fact]
+    public void PayloadConstruction_WithEmptyDetails_OmitsContextAndValue()
+    {
+        var payload = TrackingPayloadBuilder.Build(TrackingEventDetails.Empty, null, null);
 
         Assert.Empty(payload);
     }
@@ -140,44 +203,5 @@ public class EventTrackingTests
             ConfidenceEndpointUrls.PublishEventsPath);
 
         Assert.Equal("https://events.confidence.dev/v1/events:publish", url);
-    }
-
-    /// <summary>
-    /// Simulates the payload construction logic from ConfidenceProvider.Track
-    /// without requiring Unity dependencies (EvaluationContext).
-    /// </summary>
-    private static Dictionary<string, object> BuildPayload(
-        TrackingEventDetails? details,
-        string? targetingKey,
-        Dictionary<string, string>? attributes)
-    {
-        var payload = new Dictionary<string, object>();
-
-        if (details?.Data != null)
-        {
-            foreach (var kvp in details.Data)
-            {
-                if (kvp.Key != "context")
-                    payload[kvp.Key] = kvp.Value;
-            }
-        }
-
-        if (details?.Value != null)
-        {
-            payload["value"] = details.Value.Value;
-        }
-
-        var contextDict = new Dictionary<string, object>();
-        if (!string.IsNullOrEmpty(targetingKey))
-            contextDict["targeting_key"] = targetingKey;
-        if (attributes != null)
-        {
-            foreach (var attr in attributes)
-                contextDict[attr.Key] = attr.Value;
-        }
-        if (contextDict.Count > 0)
-            payload["context"] = contextDict;
-
-        return payload;
     }
 }

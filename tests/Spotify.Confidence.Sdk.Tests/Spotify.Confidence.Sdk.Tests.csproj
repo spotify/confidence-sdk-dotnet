@@ -41,6 +41,7 @@
     <Compile Include="..\..\unity-sdk\Runtime\Telemetry\Telemetry.cs" Link="Unity\Telemetry\Telemetry.cs" />
     <Compile Include="..\..\unity-sdk\Runtime\Telemetry\TelemetryEnums.cs" Link="Unity\Telemetry\TelemetryEnums.cs" />
     <Compile Include="..\..\unity-sdk\Runtime\Core\TrackingEventDetails.cs" Link="Unity\Core\TrackingEventDetails.cs" />
+    <Compile Include="..\..\unity-sdk\Runtime\Providers\TrackingPayloadBuilder.cs" Link="Unity\Providers\TrackingPayloadBuilder.cs" />
   </ItemGroup>
 
 </Project>

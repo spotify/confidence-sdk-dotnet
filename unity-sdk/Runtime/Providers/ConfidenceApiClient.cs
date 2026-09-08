@@ -46,6 +46,14 @@ namespace UnityOpenFeature.Providers
         private readonly object eventBufferLock = new object();
         private const int MAX_EVENT_BUFFER_SIZE = 100;
 
+        // Kick a flush once the buffer is this full, so it normally drains
+        // before reaching capacity rather than having to drop anything.
+        private const int EVENT_BUFFER_FLUSH_THRESHOLD = (MAX_EVENT_BUFFER_SIZE * 4) / 5;
+
+        // Events discarded because the buffer was full. Exposed via
+        // DroppedEventCount so the loss is observable instead of log-only.
+        private int droppedEventCount;
+
         // Timer for automatic checkpoints
         private float checkpointTimer = 0f;
         private const float CHECKPOINT_INTERVAL = 10f; // 10 seconds
@@ -326,11 +334,17 @@ namespace UnityOpenFeature.Providers
             }
         }
 
+        // Applied flags accumulate in appliedFlags and are only sent by
+        // Checkpoint(), which otherwise runs on a CHECKPOINT_INTERVAL timer in
+        // Update(). Backgrounding or quitting therefore lost up to an interval's
+        // worth of applies, so these checkpoints flush them too. Checkpoint()
+        // also flushes buffered events, so it replaces the FlushEventsAsync call
+        // rather than being added alongside it.
         private void OnApplicationPause(bool isPaused)
         {
             if (isPaused)
             {
-                _ = FlushEventsAsync();
+                Checkpoint();
                 _ = FlushTelemetryAsync(true);
             }
         }
@@ -339,14 +353,14 @@ namespace UnityOpenFeature.Providers
         {
             if (!hasFocus)
             {
-                _ = FlushEventsAsync();
+                Checkpoint();
                 _ = FlushTelemetryAsync(true);
             }
         }
 
         private void OnApplicationQuit()
         {
-            _ = FlushEventsAsync();
+            Checkpoint();
             _ = FlushTelemetryAsync(true);
         }
 
@@ -472,19 +486,65 @@ namespace UnityOpenFeature.Providers
                     payload = payload ?? new Dictionary<string, object>()
                 };
 
+                bool dropped;
+                bool shouldFlush;
+                int droppedTotal;
+
                 lock (eventBufferLock)
                 {
-                    if (eventBuffer.Count >= MAX_EVENT_BUFFER_SIZE)
+                    dropped = eventBuffer.Count >= MAX_EVENT_BUFFER_SIZE;
+                    if (dropped)
                     {
-                        Debug.Log("Event buffer full, dropping oldest event");
-                        eventBuffer.RemoveAt(0);
+                        // Drop the incoming event rather than shifting the list to
+                        // evict the oldest: RemoveAt(0) is O(n) under this lock on
+                        // the caller's thread, and the buffered events have already
+                        // waited, so they are the ones closest to being delivered.
+                        droppedEventCount++;
                     }
-                    eventBuffer.Add(eventData);
+                    else
+                    {
+                        eventBuffer.Add(eventData);
+                    }
+
+                    droppedTotal = droppedEventCount;
+                    shouldFlush = eventBuffer.Count >= EVENT_BUFFER_FLUSH_THRESHOLD;
+                }
+
+                if (dropped)
+                {
+                    // Rate limited: a full buffer means every subsequent call drops,
+                    // and one warning per event would bury the rest of the log.
+                    if (droppedTotal == 1 || droppedTotal % MAX_EVENT_BUFFER_SIZE == 0)
+                    {
+                        Debug.LogWarning(
+                            $"Event buffer full ({MAX_EVENT_BUFFER_SIZE}); dropped {droppedTotal} event(s) so far. " +
+                            "See ConfidenceApiClient.DroppedEventCount.");
+                    }
+                }
+
+                if (shouldFlush)
+                {
+                    _ = FlushEventsAsync();
                 }
             }
             catch (Exception ex)
             {
                 Debug.Log($"TrackEvent error (best-effort): {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Number of tracking events discarded because the buffer was full.
+        /// Non-zero means events were lost and never published.
+        /// </summary>
+        public int DroppedEventCount
+        {
+            get
+            {
+                lock (eventBufferLock)
+                {
+                    return droppedEventCount;
+                }
             }
         }
 
