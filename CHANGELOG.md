@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.3.2...v0.4.0) (2026-09-08)
+
+
+### ✨ New Features
+
+* **unity:** add event tracking ([#51](https://github.com/spotify/confidence-sdk-dotnet/issues/51)) ([6710842](https://github.com/spotify/confidence-sdk-dotnet/commit/671084234dd1f3309a825efc13e6b8b14d29f0f6))
+* **unity:** add telemetry to Unity SDK ([#39](https://github.com/spotify/confidence-sdk-dotnet/issues/39)) ([0aca7c3](https://github.com/spotify/confidence-sdk-dotnet/commit/0aca7c3749fb19f507cce48aab5cc290f3dd8ed1))
+
 ## [0.3.2](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.3.1...v0.3.2) (2026-08-27)
 
 

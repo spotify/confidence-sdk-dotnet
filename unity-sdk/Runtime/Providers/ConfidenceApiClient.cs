@@ -30,7 +30,7 @@ namespace UnityOpenFeature.Providers
     {
 
         private string sdkId = "SDK_ID_DOTNET_CONFIDENCE";
-        private const string SdkVersion = "0.3.2"; // x-release-please-version
+        private const string SdkVersion = "0.4.0"; // x-release-please-version
         public const string DefaultBaseUrl = ConfidenceEndpointUrls.DefaultBaseUrl;
         private string baseUrl = DefaultBaseUrl;
         private string clientSecret;
