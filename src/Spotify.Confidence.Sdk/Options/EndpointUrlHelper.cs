@@ -17,7 +17,7 @@ internal static class EndpointUrlHelper
             throw new ArgumentException("Base URL is required", nameof(baseUrl));
         }
 
-        var normalizedBaseUrl = baseUrl.EndsWith('/')
+        var normalizedBaseUrl = baseUrl[baseUrl.Length - 1] == '/'
             ? baseUrl
             : $"{baseUrl}/";
 
