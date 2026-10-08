@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.4.0...v0.5.0) (2026-10-08)
+
+
+### ✨ New Features
+
+* add experimental .NET Framework support via .NET Standard 2.0 ([#54](https://github.com/spotify/confidence-sdk-dotnet/issues/54)) ([e9ce187](https://github.com/spotify/confidence-sdk-dotnet/commit/e9ce187b93a98074f90abcf41d97c85e99a57531))
+
 ## [0.4.0](https://github.com/spotify/confidence-sdk-dotnet/compare/v0.3.2...v0.4.0) (2026-09-08)
 
 
