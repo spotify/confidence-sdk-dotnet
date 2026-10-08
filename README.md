@@ -5,7 +5,6 @@ This is the official .NET SDK for the Spotify Confidence platform. It provides s
 ## Requirements
 
 - .NET 8.0 or later
-- .NET Framework 4.6.2 or later
 
 ## Installation
 
