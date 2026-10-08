@@ -32,3 +32,20 @@ jobs:
     
     - name: Run tests on .NET 8.0
       run: dotnet test --no-build --verbosity normal --framework net8.0
+
+  validate-framework:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Run SDK tests on .NET Framework 4.6.2
+      run: dotnet test tests/Spotify.Confidence.Sdk.Tests --framework net462 /p:TreatWarningsAsErrors=true
+
+    - name: Run OpenFeature tests on .NET Framework 4.6.2
+      run: dotnet test tests/Spotify.Confidence.OpenFeature.Tests --framework net462 /p:TreatWarningsAsErrors=true

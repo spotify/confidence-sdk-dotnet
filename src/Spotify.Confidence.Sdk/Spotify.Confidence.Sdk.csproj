@@ -1,9 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;netstandard2.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <LangVersion>12.0</LangVersion>
     <IsPackable>true</IsPackable>
     <PackageId>Spotify.Confidence.Sdk</PackageId>
     <Version>0.4.0</Version> <!--x-release-please-version -->
@@ -33,6 +34,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     <PackageReference Include="Polly" Version="8.2.1" />
     <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
+    <PackageReference Include="System.Net.Http.Json" Version="8.0.1" Condition="'$(TargetFramework)' == 'netstandard2.0'" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <PackageReference Include="Roslynator.Analyzers" Version="4.14.0" PrivateAssets="All" IncludeAssets="runtime; build; native; contentfiles; analyzers" />

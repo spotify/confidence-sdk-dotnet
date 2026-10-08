@@ -89,7 +89,12 @@ internal sealed class Telemetry
         {
             // Only match "not found" which is a well-known pattern from our own code.
             // Everything else maps to General — no brittle string parsing.
-            var errorCode = errorMessage.Contains("not found", StringComparison.OrdinalIgnoreCase)
+#if NETSTANDARD2_0
+            var isNotFound = errorMessage.IndexOf("not found", StringComparison.OrdinalIgnoreCase) >= 0;
+#else
+            var isNotFound = errorMessage.Contains("not found", StringComparison.OrdinalIgnoreCase);
+#endif
+            var errorCode = isNotFound
                 ? EvaluationErrorCode.FlagNotFound
                 : EvaluationErrorCode.General;
             return (EvaluationReason.Error, errorCode);

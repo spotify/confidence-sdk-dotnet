@@ -271,9 +271,9 @@ public class ConfidenceProvider : FeatureProvider
         var attributes = new Dictionary<string, object>();
 
         // Add targeting key as a regular attribute if it exists
-        if (!string.IsNullOrEmpty(context.TargetingKey))
+        if (context.TargetingKey is { Length: > 0 } targetingKey)
         {
-            attributes["targeting_key"] = context.TargetingKey;
+            attributes["targeting_key"] = targetingKey;
         }
 
         // Add all other attributes from the OpenFeature context

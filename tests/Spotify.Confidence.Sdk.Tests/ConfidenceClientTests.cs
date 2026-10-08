@@ -510,7 +510,7 @@ public class ConfidenceClientTests
         Assert.False(result.IsSuccess);
         Assert.NotEmpty(result.ErrorMessage ?? string.Empty); // Any error message is fine
         Assert.NotNull(result.Exception);
-        Assert.IsType<TaskCanceledException>(result.Exception);
+        Assert.IsAssignableFrom<OperationCanceledException>(result.Exception);
         Assert.Equal("ERROR", result.Reason);
         Assert.False(result.Value); // Should return default value (false for bool)
     }
@@ -561,7 +561,7 @@ public class ConfidenceClientTests
         Assert.False(result.IsSuccess);
         Assert.NotEmpty(result.ErrorMessage ?? string.Empty); // Any error message is fine
         Assert.NotNull(result.Exception);
-        Assert.IsType<TaskCanceledException>(result.Exception);
+        Assert.IsAssignableFrom<OperationCanceledException>(result.Exception);
         Assert.Equal("ERROR", result.Reason);
         Assert.False(result.Value); // Should return default value (false for bool)
     }
