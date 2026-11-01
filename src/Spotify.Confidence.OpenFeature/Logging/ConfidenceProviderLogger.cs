@@ -41,7 +41,7 @@ internal static class ConfidenceProviderLogger
 
     public static readonly Action<ILogger, string, object?, Exception?> ErrorResolvingBooleanFlag =
         LoggerMessage.Define<string, object?>(
-            LogLevel.Warning,
+            LogLevel.Debug,
             new EventId(2003, "ErrorResolvingBooleanFlag"),
             "Error resolving boolean flag '{FlagKey}', returning default value: {DefaultValue}");
 
@@ -60,7 +60,7 @@ internal static class ConfidenceProviderLogger
 
     public static readonly Action<ILogger, string, object?, Exception?> ErrorResolvingStringFlag =
         LoggerMessage.Define<string, object?>(
-            LogLevel.Warning,
+            LogLevel.Debug,
             new EventId(2006, "ErrorResolvingStringFlag"),
             "Error resolving string flag '{FlagKey}', returning default value: {DefaultValue}");
 
@@ -79,7 +79,7 @@ internal static class ConfidenceProviderLogger
 
     public static readonly Action<ILogger, string, object?, Exception?> ErrorResolvingIntegerFlag =
         LoggerMessage.Define<string, object?>(
-            LogLevel.Warning,
+            LogLevel.Debug,
             new EventId(2009, "ErrorResolvingIntegerFlag"),
             "Error resolving integer flag '{FlagKey}', returning default value: {DefaultValue}");
 
@@ -98,7 +98,7 @@ internal static class ConfidenceProviderLogger
 
     public static readonly Action<ILogger, string, object?, Exception?> ErrorResolvingDoubleFlag =
         LoggerMessage.Define<string, object?>(
-            LogLevel.Warning,
+            LogLevel.Debug,
             new EventId(2012, "ErrorResolvingDoubleFlag"),
             "Error resolving double flag '{FlagKey}', returning default value: {DefaultValue}");
 
@@ -117,7 +117,7 @@ internal static class ConfidenceProviderLogger
 
     public static readonly Action<ILogger, string, Exception?> ErrorResolvingStructureFlag =
         LoggerMessage.Define<string>(
-            LogLevel.Warning,
+            LogLevel.Debug,
             new EventId(2015, "ErrorResolvingStructureFlag"),
             "Error resolving structure flag '{FlagKey}', returning default value");
 }

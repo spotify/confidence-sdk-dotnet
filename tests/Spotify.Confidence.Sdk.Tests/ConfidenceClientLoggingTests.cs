@@ -184,4 +184,115 @@ public class ConfidenceClientLoggingTests
         // Should not contain any logs
         Assert.Empty(logs);
     }
+
+    [Fact]
+    public async Task ConfidenceClient_WhenFlagPropertyNotFound_DoesNotEmitWarningOrError()
+    {
+        // Arrange - Issue #20: a flag property with default value should return default without warning
+        var testLogger = new TestLogger<ConfidenceClient>(LogLevel.Warning);
+
+        var options = new ConfidenceOptions
+        {
+            ClientSecret = "test-secret",
+            LogLevel = LogLevel.Warning,
+            ResolveUrl = "https://api.test.com",
+            EventUrl = "https://api.test.com"
+        };
+
+        var mockHandler = new Mock<HttpMessageHandler>();
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent("""
+                {
+                    "resolvedFlags": [
+                        {
+                            "flag": "flags/test-flag",
+                            "variant": "flags/test-flag/variants/v1",
+                            "value": {
+                                "otherProperty": "hello"
+                            },
+                            "reason": "RESOLVE_REASON_MATCH"
+                        }
+                    ],
+                    "resolveToken": "test-token"
+                }
+                """, Encoding.UTF8, "application/json")
+            });
+
+        var httpClient = new HttpClient(mockHandler.Object)
+        {
+            BaseAddress = new Uri("https://api.test.com")
+        };
+
+        var client = new ConfidenceClient(options, testLogger);
+
+        var resolveField = typeof(ConfidenceClient).GetField("_resolveClient",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        resolveField?.SetValue(client, httpClient);
+
+        // Act - Request missing property on flag with configured default value
+        var result = await client.EvaluateBooleanFlagAsync("test-flag.missingProperty", true);
+
+        // Assert
+        Assert.True(result.Value);
+        Assert.False(result.IsSuccess);
+        Assert.DoesNotContain(testLogger.Logs, log => log.Level >= LogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task ConfidenceClient_WhenFlagNotFound_DoesNotEmitWarning()
+    {
+        // Arrange
+        var testLogger = new TestLogger<ConfidenceClient>(LogLevel.Warning);
+
+        var options = new ConfidenceOptions
+        {
+            ClientSecret = "test-secret",
+            LogLevel = LogLevel.Warning,
+            ResolveUrl = "https://api.test.com",
+            EventUrl = "https://api.test.com"
+        };
+
+        var mockHandler = new Mock<HttpMessageHandler>();
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent("""
+                {
+                    "resolvedFlags": [],
+                    "resolveToken": "test-token"
+                }
+                """, Encoding.UTF8, "application/json")
+            });
+
+        var httpClient = new HttpClient(mockHandler.Object)
+        {
+            BaseAddress = new Uri("https://api.test.com")
+        };
+
+        var client = new ConfidenceClient(options, testLogger);
+
+        var resolveField = typeof(ConfidenceClient).GetField("_resolveClient",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        resolveField?.SetValue(client, httpClient);
+
+        // Act
+        var result = await client.EvaluateStringFlagAsync("unknown-flag", "fallback");
+
+        // Assert
+        Assert.Equal("fallback", result.Value);
+        Assert.False(result.IsSuccess);
+        Assert.DoesNotContain(testLogger.Logs, log => log.Level >= LogLevel.Warning);
+    }
 }

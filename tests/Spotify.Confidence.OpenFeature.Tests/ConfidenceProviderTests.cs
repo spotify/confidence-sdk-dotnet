@@ -521,4 +521,32 @@ public class ConfidenceProviderTests
 
         jsonDoc.Dispose();
     }
+
+    [Fact]
+    public async Task ResolveFlag_WhenReturningDefaultValue_DoesNotEmitWarningLogs()
+    {
+        // Arrange - Issue #20: a flag property with default value should return default without warning logs
+        var mockLogger = new Mock<ILogger<ConfidenceProvider>>();
+        var provider = new ConfidenceProvider(_mockClient.Object, mockLogger.Object);
+
+        const string flagKey = "test-flag.property";
+        const bool defaultValue = true;
+
+        _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(flagKey, defaultValue, It.IsAny<ConfidenceContext>(), default))
+            .ReturnsAsync(EvaluationResult.Failure(defaultValue, "Property path 'property' not found"));
+
+        // Act
+        var result = await provider.ResolveBooleanValueAsync(flagKey, defaultValue);
+
+        // Assert
+        Assert.Equal(defaultValue, result.Value);
+        mockLogger.Verify(
+            x => x.Log(
+                It.Is<LogLevel>(l => l >= LogLevel.Warning),
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
 }
