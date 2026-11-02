@@ -8,6 +8,9 @@ namespace UnityOpenFeature.Client
         string GetStringValue(string flagKey, string defaultValue);
         int GetIntegerValue(string flagKey, int defaultValue);
         float GetFloatValue(string flagKey, float defaultValue);
+        /// <summary>Gets an object flag value.</summary>
+        /// <remarks>Support for list/array flag schema values is deprecated; they still resolve for
+        /// compatibility, but new flags should use struct schemas. Context/event arrays are unaffected.</remarks>
         T GetObjectValue<T>(string flagKey, T defaultValue);
 
         ResolutionDetails<bool> GetBooleanDetails(string flagKey, bool defaultValue);
