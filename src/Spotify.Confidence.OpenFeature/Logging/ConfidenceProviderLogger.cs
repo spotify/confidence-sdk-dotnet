@@ -120,4 +120,10 @@ internal static class ConfidenceProviderLogger
             LogLevel.Warning,
             new EventId(2015, "ErrorResolvingStructureFlag"),
             "Error resolving structure flag '{FlagKey}', returning default value");
+
+    public static readonly Action<ILogger, string, object?, Exception?> FlagNotFound =
+        LoggerMessage.Define<string, object?>(
+            LogLevel.Debug,
+            new EventId(2018, "FlagNotFound"),
+            "Flag or property '{FlagKey}' not found, returning default value: {DefaultValue}");
 }

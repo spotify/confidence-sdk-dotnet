@@ -217,9 +217,9 @@ var client = new ConfidenceClient(options, logger);
 
 ### What Gets Logged
 
-- **Debug**: Flag evaluations, HTTP requests, successful operations
+- **Debug**: Flag evaluations, HTTP requests, successful operations, expected flag/property misses returning default values
 - **Information**: SDK initialization, provider lifecycle events
-- **Warning**: Non-critical failures (event tracking failures, flag not found)
+- **Warning**: Non-critical failures (event tracking failures, unexpected flag resolution failures)
 - **Error**: Critical failures (API communication errors, parsing failures)
 
 ## Contributing

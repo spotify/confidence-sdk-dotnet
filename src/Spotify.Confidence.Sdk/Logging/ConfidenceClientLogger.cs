@@ -54,9 +54,15 @@ internal static class ConfidenceClientLogger
 
     public static readonly Action<ILogger, string, object?, Exception?> FlagNotFound =
         LoggerMessage.Define<string, object?>(
-            LogLevel.Warning,
+            LogLevel.Debug,
             new EventId(1011, "FlagNotFound"),
             "Flag '{FlagKey}' not found in response, returning default value: {DefaultValue}");
+
+    public static readonly Action<ILogger, string, object?, Exception?> PropertyNotFound =
+        LoggerMessage.Define<string, object?>(
+            LogLevel.Debug,
+            new EventId(1026, "PropertyNotFound"),
+            "Property for flag '{FlagKey}' not found in response, returning default value: {DefaultValue}");
 
     public static readonly Action<ILogger, string, object?, Exception?> FlagParsingFailed =
         LoggerMessage.Define<string, object?>(

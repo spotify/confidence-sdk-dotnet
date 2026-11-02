@@ -225,7 +225,14 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
 
             if (errorMessage != null)
             {
-                ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, null);
+                if (errorMessage.StartsWith("Property path", StringComparison.Ordinal))
+                {
+                    ConfidenceClientLogger.PropertyNotFound(_logger, flagKey, defaultValue, null);
+                }
+                else
+                {
+                    ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, null);
+                }
                 var result = EvaluationResult.Failure(defaultValue, errorMessage);
                 TrackEvaluation(flag.Reason, errorMessage);
                 return result;
@@ -560,7 +567,14 @@ public class ConfidenceClient : IConfidenceClient, IDisposable
 
             if (errorMessage != null)
             {
-                ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, null);
+                if (errorMessage.StartsWith("Property path", StringComparison.Ordinal))
+                {
+                    ConfidenceClientLogger.PropertyNotFound(_logger, flagKey, defaultValue, null);
+                }
+                else
+                {
+                    ConfidenceClientLogger.FlagParsingFailed(_logger, flagKey, defaultValue, null);
+                }
                 var result = EvaluationResult.Failure(defaultValue, errorMessage);
                 TrackEvaluation(flag.Reason, errorMessage);
                 return result;
