@@ -549,4 +549,30 @@ public class ConfidenceProviderTests
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task ResolveFlag_WhenUnexpectedExceptionOccurs_EmitsWarningLogs()
+    {
+        var mockLogger = new Mock<ILogger<ConfidenceProvider>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true);
+        var provider = new ConfidenceProvider(_mockClient.Object, mockLogger.Object);
+
+        const string flagKey = "test-flag";
+        const bool defaultValue = true;
+
+        _mockClient.Setup(c => c.EvaluateBooleanFlagAsync(flagKey, defaultValue, It.IsAny<ConfidenceContext>(), default))
+            .ThrowsAsync(new InvalidOperationException("Unexpected error inside provider"));
+
+        var result = await provider.ResolveBooleanValueAsync(flagKey, defaultValue);
+
+        Assert.Equal(defaultValue, result.Value);
+        mockLogger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.Is<EventId>(e => e.Id == 2003),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
 }
