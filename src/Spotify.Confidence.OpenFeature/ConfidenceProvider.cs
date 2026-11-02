@@ -205,6 +205,13 @@ public class ConfidenceProvider : FeatureProvider
         }
     }
 
+    /// <summary>
+    /// Resolves a structure (object) flag value.
+    /// </summary>
+    /// <remarks>
+    /// Support for list/array flag schema values is deprecated. List values are still converted to
+    /// <see cref="Value"/> lists for compatibility, but new flags should use struct schemas instead.
+    /// </remarks>
     public override async Task<ResolutionDetails<Value>> ResolveStructureValueAsync(
         string flagKey,
         Value defaultValue,
