@@ -69,7 +69,14 @@ public class ConfidenceProvider : FeatureProvider
             var result = await _confidenceClient.EvaluateBooleanFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
             if (!result.IsSuccess)
             {
-                ConfidenceProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, result.Exception);
+                if (IsExpectedMiss(result))
+                {
+                    ConfidenceProviderLogger.FlagNotFound(_logger, flagKey, defaultValue, result.Exception);
+                }
+                else
+                {
+                    ConfidenceProviderLogger.ErrorResolvingBooleanFlag(_logger, flagKey, defaultValue, result.Exception);
+                }
                 return new ResolutionDetails<bool>(
                     flagKey,
                     result.Value,
@@ -106,7 +113,14 @@ public class ConfidenceProvider : FeatureProvider
             var result = await _confidenceClient.EvaluateStringFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
             if (!result.IsSuccess)
             {
-                ConfidenceProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, result.Exception);
+                if (IsExpectedMiss(result))
+                {
+                    ConfidenceProviderLogger.FlagNotFound(_logger, flagKey, defaultValue, result.Exception);
+                }
+                else
+                {
+                    ConfidenceProviderLogger.ErrorResolvingStringFlag(_logger, flagKey, defaultValue, result.Exception);
+                }
                 return new ResolutionDetails<string>(
                     flagKey,
                     result.Value,
@@ -143,7 +157,14 @@ public class ConfidenceProvider : FeatureProvider
             var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
             if (!result.IsSuccess)
             {
-                ConfidenceProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, result.Exception);
+                if (IsExpectedMiss(result))
+                {
+                    ConfidenceProviderLogger.FlagNotFound(_logger, flagKey, defaultValue, result.Exception);
+                }
+                else
+                {
+                    ConfidenceProviderLogger.ErrorResolvingIntegerFlag(_logger, flagKey, defaultValue, result.Exception);
+                }
                 return new ResolutionDetails<int>(
                     flagKey,
                     (int)result.Value,
@@ -181,7 +202,14 @@ public class ConfidenceProvider : FeatureProvider
             var result = await _confidenceClient.EvaluateNumericFlagAsync(flagKey, defaultValue, CreateConfidenceContext(context), cancellationToken);
             if (!result.IsSuccess)
             {
-                ConfidenceProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, result.Exception);
+                if (IsExpectedMiss(result))
+                {
+                    ConfidenceProviderLogger.FlagNotFound(_logger, flagKey, defaultValue, result.Exception);
+                }
+                else
+                {
+                    ConfidenceProviderLogger.ErrorResolvingDoubleFlag(_logger, flagKey, defaultValue, result.Exception);
+                }
                 return new ResolutionDetails<double>(
                     flagKey,
                     result.Value,
@@ -218,7 +246,14 @@ public class ConfidenceProvider : FeatureProvider
             var result = await _confidenceClient.EvaluateJsonFlagAsync(flagKey, defaultValue.AsObject ?? new Dictionary<string, object>(), CreateConfidenceContext(context), cancellationToken);
             if (!result.IsSuccess)
             {
-                ConfidenceProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, result.Exception);
+                if (IsExpectedMiss(result))
+                {
+                    ConfidenceProviderLogger.FlagNotFound(_logger, flagKey, defaultValue, result.Exception);
+                }
+                else
+                {
+                    ConfidenceProviderLogger.ErrorResolvingStructureFlag(_logger, flagKey, result.Exception);
+                }
                 return new ResolutionDetails<Value>(
                     flagKey,
                     defaultValue,
@@ -383,5 +418,12 @@ public class ConfidenceProvider : FeatureProvider
         });
 
         return loggerFactory.CreateLogger<ConfidenceClient>();
+    }
+
+    private static bool IsExpectedMiss<T>(Spotify.Confidence.Sdk.Models.EvaluationResult<T> result)
+    {
+        return result.ErrorMessage != null &&
+            (result.ErrorMessage.Contains("not found in response", StringComparison.OrdinalIgnoreCase) ||
+             result.ErrorMessage.StartsWith("Property path", StringComparison.Ordinal));
     }
 }
