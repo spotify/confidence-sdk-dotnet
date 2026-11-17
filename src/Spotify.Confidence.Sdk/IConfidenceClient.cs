@@ -147,8 +147,13 @@ public interface IConfidenceClient
 
     /// <summary>
     /// Gets the JSON/object value of a flag for the specified key and context.
-    /// This method is useful for complex flag structures like dictionaries, arrays, or custom objects.
+    /// This method is useful for complex flag structures like dictionaries or custom objects.
     /// </summary>
+    /// <remarks>
+    /// Support for list/array flag schema values is deprecated. Existing list values are still
+    /// resolved and returned for compatibility, but new flags should use struct (object) schemas instead.
+    /// This does not affect arrays in evaluation context or event data.
+    /// </remarks>
     /// <param name="flagKey">The key of the flag to evaluate.</param>
     /// <param name="defaultValue">The default value to return if the flag cannot be resolved.</param>
     /// <param name="context">The context to use for evaluation.</param>
